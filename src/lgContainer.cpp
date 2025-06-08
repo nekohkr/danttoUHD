@@ -43,7 +43,6 @@ void LgContainerUnpacker::unpack(const UnpackCallback& callback) {
         
         callback(container);
 
-        stream.skip(0x23);
         pos = stream.getPos();
     }
 
