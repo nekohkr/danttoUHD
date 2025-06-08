@@ -1,0 +1,154 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="common">
+      <UniqueIdentifier>{3cd0d081-407a-4044-9fa8-1e2721fdd93f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demux">
+      <UniqueIdentifier>{e6d3bbb7-9f2f-4339-9384-2e0b3bed9427}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demux\structs">
+      <UniqueIdentifier>{065bb9f0-dc4b-4c41-898c-03962e4620d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demux\structs\atsc3">
+      <UniqueIdentifier>{d4fb4e39-0428-4fe5-8e42-664a9cbcf3c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="mpegh">
+      <UniqueIdentifier>{888c4f12-fcbc-4a27-9a18-63be88710b7a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="muxer">
+      <UniqueIdentifier>{84dbc32a-2ded-4876-b72e-64dcebacb181}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="xml">
+      <UniqueIdentifier>{1d8951cc-f02c-48f7-b0c3-bebe3d6ddb08}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stream.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="demuxer.cpp">
+      <Filter>demux</Filter>
+    </ClCompile>
+    <ClCompile Include="mp4Processor.cpp">
+      <Filter>demux</Filter>
+    </ClCompile>
+    <ClCompile Include="muxer.cpp">
+      <Filter>muxer</Filter>
+    </ClCompile>
+    <ClCompile Include="pesPacket.cpp">
+      <Filter>muxer</Filter>
+    </ClCompile>
+    <ClCompile Include="pugixml.cpp">
+      <Filter>xml</Filter>
+    </ClCompile>
+    <ClCompile Include="mpeghDecoder.cpp">
+      <Filter>mpegh</Filter>
+    </ClCompile>
+    <ClCompile Include="wav_file2.cpp">
+      <Filter>mpegh</Filter>
+    </ClCompile>
+    <ClCompile Include="ac3Encoder.cpp">
+      <Filter>mpegh</Filter>
+    </ClCompile>
+    <ClCompile Include="rescale.cpp">
+      <Filter>muxer</Filter>
+    </ClCompile>
+    <ClCompile Include="lgContainer.cpp">
+      <Filter>demux\structs</Filter>
+    </ClCompile>
+    <ClCompile Include="ipv4.cpp">
+      <Filter>demux\structs</Filter>
+    </ClCompile>
+    <ClCompile Include="udp.cpp">
+      <Filter>demux\structs</Filter>
+    </ClCompile>
+    <ClCompile Include="alp.cpp">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="lct.cpp">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="lls.cpp">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="bbPacket.cpp">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="danttoUHD.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="stream.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="demuxer.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="swap.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="routeObject.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="mp4Processor.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="streamPacket.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="muxer.h">
+      <Filter>muxer</Filter>
+    </ClInclude>
+    <ClInclude Include="pugixml.hpp">
+      <Filter>xml</Filter>
+    </ClInclude>
+    <ClInclude Include="pugiconfig.hpp">
+      <Filter>xml</Filter>
+    </ClInclude>
+    <ClInclude Include="demuxerHandler.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="mpeghDecoder.h">
+      <Filter>mpegh</Filter>
+    </ClInclude>
+    <ClInclude Include="wav_file2.h">
+      <Filter>mpegh</Filter>
+    </ClInclude>
+    <ClInclude Include="ac3Encoder.h">
+      <Filter>mpegh</Filter>
+    </ClInclude>
+    <ClInclude Include="atsc3.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="rescale.h">
+      <Filter>muxer</Filter>
+    </ClInclude>
+    <ClInclude Include="lgContainer.h">
+      <Filter>demux\structs</Filter>
+    </ClInclude>
+    <ClInclude Include="ipv4.h">
+      <Filter>demux\structs</Filter>
+    </ClInclude>
+    <ClInclude Include="udp.h">
+      <Filter>demux\structs</Filter>
+    </ClInclude>
+    <ClInclude Include="alp.h">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="lct.h">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="lls.h">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="bbPacket.h">
+      <Filter>demux\structs\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="httplib.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="pesPacket.h">
+      <Filter>muxer</Filter>
+    </None>
+  </ItemGroup>
+</Project>

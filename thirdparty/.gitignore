@@ -1,0 +1,8 @@
+ffmpeg/*
+!ffmpeg/.gitkeep
+tsduck/*
+!tsduck/.gitkeep
+Bento4/*
+!Bento4/.gitkeep
+mpeghdec/*
+!mpeghdec/.gitkeep
