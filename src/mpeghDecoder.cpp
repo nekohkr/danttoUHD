@@ -251,15 +251,19 @@ public:
                             throw std::runtime_error("[" + std::to_string(frameCounter) +
                                 "] Error: Unable to write to output file " + m_wavFilename);
                         }
-						frameCounter++;
+                        frameCounter++;
                     }
                 }
             }
-            WAV_OutputFlush2(&m_wavFile);
-            chunks = *m_wavFile->buffer;
-            WAV_OutputClose2(&m_wavFile);
 
-            return chunks;
+            if (m_wavFile) {
+                WAV_OutputFlush2(&m_wavFile);
+                chunks = *m_wavFile->buffer;
+                WAV_OutputClose2(&m_wavFile);
+                return chunks;
+            }
+
+            return std::vector<uint8_t>{};
         }
 
         return std::vector<uint8_t>{};

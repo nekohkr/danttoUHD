@@ -13,7 +13,7 @@ namespace ATSC3 {
 
     class BasebandPacket {
     public:
-		bool unpack(Common::ReadStream& s);
+        bool unpack(Common::ReadStream& s);
 
 
         class BaseField {
@@ -35,8 +35,8 @@ namespace ATSC3 {
 
 
         BaseField baseField;
-		OptionalField optionalField;
-		std::vector<uint8_t> extension;
+        OptionalField optionalField;
+        std::vector<uint8_t> extension;
         std::vector<uint8_t> payload;
     };
 }

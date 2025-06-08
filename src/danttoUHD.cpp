@@ -59,11 +59,11 @@ int main(int argc, char* argv[]) {
     constexpr size_t chunkSize = 1024 * 1024;
     inputBuffer.reserve(chunkSize * 2);
 
-	muxer.setOutputCallback([&](const uint8_t* data, size_t size) {
-		if (outputFs->is_open()) {
-			outputFs->write(reinterpret_cast<const char*>(data), size);
-		}
-	});
+    muxer.setOutputCallback([&](const uint8_t* data, size_t size) {
+        if (outputFs->is_open()) {
+            outputFs->write(reinterpret_cast<const char*>(data), size);
+        }
+    });
     demuxer.setHandler(&muxer);
 
 
@@ -79,9 +79,9 @@ int main(int argc, char* argv[]) {
             inputBuffer.resize(oldSize + inputStream->gcount());
         }
 
-		demuxer.demux(inputBuffer);
+        demuxer.demux(inputBuffer);
         inputBuffer.clear();
     }
 
-	outputFs->close();
+    outputFs->close();
 }

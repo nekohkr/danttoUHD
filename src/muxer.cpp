@@ -4,16 +4,10 @@
 #include <filesystem>
 #include <vector>
 extern "C" {
-
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 }
-#pragma comment(lib, "avcodec.lib")
-#pragma comment(lib, "avformat.lib")
-#pragma comment(lib, "avutil.lib")
-#pragma comment(lib, "swscale.lib")
-
 #include "pesPacket.h"
 #include "streamPacket.h"
 #include "mpeghDecoder.h"
@@ -97,7 +91,7 @@ bool Muxer::writePat()
 
 void Muxer::setOutputCallback(OutputCallback cb)
 {
-	outputCallback = std::move(cb);
+    outputCallback = std::move(cb);
 }
 
 void Muxer::onPmt(const std::unordered_map<uint32_t, RouteObject>& objects)
@@ -203,6 +197,10 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
         std::vector<uint8_t> wav;
         std::vector<uint8_t> ac3;
         mpeghDecode(decryptedMP4, wav);
+        if (wav.size() == 0) {
+            return;
+        }
+
         ac3Encode(wav, ac3);
 
         for (int i2 = 0; i2 < 24; i2++) {
@@ -220,7 +218,7 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
 
             std::vector<uint8_t> chunk;
             const size_t chunkSize = ac3.size() / 24;
-			chunk.insert(chunk.end(), ac3.begin() + i2 * chunkSize, ac3.begin() + (i2 + 1) * chunkSize);
+            chunk.insert(chunk.end(), ac3.begin() + i2 * chunkSize, ac3.begin() + (i2 + 1) * chunkSize);
             pes.setPayload(&chunk);
             pes.pack(pesOutput);
 

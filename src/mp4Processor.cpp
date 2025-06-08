@@ -175,7 +175,7 @@ bool MP4Processor::ProcessPssh(AP4_Atom* trun) {
         httplib::Client cli("http://192.168.0.12:8084");
 
         std::vector<uint8_t> data;
-		data.insert(data.end(), kid.begin(), kid.end());
+        data.insert(data.end(), kid.begin(), kid.end());
         data.insert(data.end(), ecm.begin(), ecm.end());
 
         std::string body(data.begin(), data.end());
@@ -293,7 +293,7 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
         newMdat.Write(*stream2);
         outputMp4.insert(outputMp4.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
 
-		stream2->Release();
+        stream2->Release();
     }
 
     stream->Release();
@@ -369,8 +369,8 @@ bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamP
 {
     clear();
 
-	AP4_DataBuffer buffer;
-	buffer.SetData((AP4_UI08*)data.data(), static_cast<AP4_Size>(data.size()));
+    AP4_DataBuffer buffer;
+    buffer.SetData((AP4_UI08*)data.data(), static_cast<AP4_Size>(data.size()));
 
     AP4_MemoryByteStream* stream = new AP4_MemoryByteStream(buffer);
     AP4_AtomFactory atom_factory;
@@ -397,7 +397,7 @@ bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamP
         AP4_MemoryByteStream* stream = new AP4_MemoryByteStream(buffer);
         atom->GetData()->Write(*stream);
         decryptedMP4.insert(decryptedMP4.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
-		stream->Release();
+        stream->Release();
 
         atom = atom->GetNext();
     }
@@ -408,6 +408,6 @@ bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamP
     baseDts = this->baseDts;
 
     delete file;
-	stream->Release();
-	return true;
+    stream->Release();
+    return true;
 }

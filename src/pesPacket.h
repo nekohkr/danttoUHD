@@ -19,45 +19,45 @@ constexpr uint8_t STREAM_ID_PROGRAM_STREAM_DIRECTORY = 0xff;
 constexpr uint64_t NOPTS_VALUE = 0x8000000000000000;
 
 constexpr uint8_t componentTagToStreamId(uint8_t tag) {
-	if (tag >= 0 && tag <= 0x0F) {
-		return STREAM_ID_VIDEO_STREAM_0 + tag;
-	}
-	
-	if (tag >= 0x10 && tag <= 0x2F) {
-		return STREAM_ID_AUDIO_STREAM_0 + (tag - 0x10);
-	}
+    if (tag >= 0 && tag <= 0x0F) {
+        return STREAM_ID_VIDEO_STREAM_0 + tag;
+    }
+    
+    if (tag >= 0x10 && tag <= 0x2F) {
+        return STREAM_ID_AUDIO_STREAM_0 + (tag - 0x10);
+    }
 
-	if (tag == 0x30) {
-		return STREAM_ID_PRIVATE_STREAM_1;
-	}
+    if (tag == 0x30) {
+        return STREAM_ID_PRIVATE_STREAM_1;
+    }
 
-	if (tag == 0x38) {
-		return STREAM_ID_PRIVATE_STREAM_2;
-	}
+    if (tag == 0x38) {
+        return STREAM_ID_PRIVATE_STREAM_2;
+    }
 
-	return STREAM_ID_PRIVATE_STREAM_1;
+    return STREAM_ID_PRIVATE_STREAM_1;
 }
 
 class PESPacket {
 public:
-	bool pack(std::vector<uint8_t>& output);
-	void setPts(uint64_t pts) { this->pts = pts; }
-	void setDts(uint64_t dts) { this->dts = dts; }
-	void setStreamId(uint8_t streamId) { this->streamId = streamId; };
-	void setDataAlignmentIndicator(bool dataAlignmentIndicator) { this->dataAlignmentIndicator = dataAlignmentIndicator; }
-	uint64_t getPts() const { return pts; }
-	uint64_t getDts() const { return dts; }
-	uint8_t setStreamId() const { return streamId; }
-	void setPayload(const std::vector<uint8_t>* payload) { this->payload = payload; }
-	bool getDataAlignmentIndicator() const { return dataAlignmentIndicator; }
+    bool pack(std::vector<uint8_t>& output);
+    void setPts(uint64_t pts) { this->pts = pts; }
+    void setDts(uint64_t dts) { this->dts = dts; }
+    void setStreamId(uint8_t streamId) { this->streamId = streamId; };
+    void setDataAlignmentIndicator(bool dataAlignmentIndicator) { this->dataAlignmentIndicator = dataAlignmentIndicator; }
+    uint64_t getPts() const { return pts; }
+    uint64_t getDts() const { return dts; }
+    uint8_t setStreamId() const { return streamId; }
+    void setPayload(const std::vector<uint8_t>* payload) { this->payload = payload; }
+    bool getDataAlignmentIndicator() const { return dataAlignmentIndicator; }
 
 
 private:
-	uint8_t streamId{};
-	bool dataAlignmentIndicator{};
-	const std::vector<uint8_t>* payload{nullptr};
+    uint8_t streamId{};
+    bool dataAlignmentIndicator{};
+    const std::vector<uint8_t>* payload{nullptr};
 
-	uint64_t pts{NOPTS_VALUE};
-	uint64_t dts{NOPTS_VALUE};
+    uint64_t pts{NOPTS_VALUE};
+    uint64_t dts{NOPTS_VALUE};
 
 };
