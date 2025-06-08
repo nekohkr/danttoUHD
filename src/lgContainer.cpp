@@ -19,7 +19,7 @@ void LgContainerUnpacker::unpack(const UnpackCallback& callback) {
 
         pos = stream.getPos();
 
-        stream.skip(4); // skip sync bytes
+        stream.skip(4); // skip sync word
 
         uint8_t uint8 = stream.get8U();
 
