@@ -18,11 +18,8 @@ enum class DemuxStatus {
 
 class Demuxer {
 public:
-    bool init();
     DemuxStatus demux(const std::vector<uint8_t>& input);
-    bool isVaildBBFrame(Common::ReadStream& stream);
     void setHandler(DemuxerHandler* handler);
-    void printStatistics() const;
 
     IPv4Header ipv4;
 private:
@@ -36,7 +33,6 @@ private:
     std::unordered_map<uint32_t, RouteObject> routeObjects;
     
     std::vector<uint8_t> alpBuffer;
-    bool isFirstPacket = true;
     bool alpAligned{ false };
 
     MP4Processor mp4Processor;

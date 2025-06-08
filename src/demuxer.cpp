@@ -114,7 +114,7 @@ DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
             if (packetType == ATSC3::AlpPacketType::IPv4) {
                 Common::ReadStream payloadStream(alp.payload);
                 if (!processIpUdp(payloadStream)) {
-                    isFirstPacket = true;
+                    alpAligned = false;
                     alpBuffer.clear();
                     return;
                 }

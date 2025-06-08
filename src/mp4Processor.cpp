@@ -37,6 +37,7 @@ std::array<uint8_t, 16> toArray16(const std::vector<uint8_t>& vec) {
 }
 
 }
+
 bool MP4ConfigParser::parse(const std::vector<uint8_t>& input, MP4Config& config)
 {
     AP4_DataBuffer buffer;
@@ -195,7 +196,6 @@ bool MP4Processor::ProcessPssh(AP4_Atom* trun) {
             if (keyCache.size() > 100) {
                 keyCache.pop_front();
             }
-
         }
         else {
             return false;
@@ -231,9 +231,9 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
 
             StreamPacket packet;
             packet.data = segment;
-            dts += baseSampleDuration;
             packet.dts = dts;
             packet.pts = dts + vecSampleCompositionTimeOffset[i];
+            dts += baseSampleDuration;
             packets.push_back(packet);
         }
         else {
@@ -270,9 +270,9 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
 
             StreamPacket packet;
             packet.data = std::move(decrypted);
-            dts += baseSampleDuration;
             packet.dts = dts;
             packet.pts = dts + vecSampleCompositionTimeOffset[i];
+            dts += baseSampleDuration;
             packets.push_back(packet);
         }
 #else
@@ -280,9 +280,9 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
 
         StreamPacket packet;
         packet.data = segment;
-        dts += baseSampleDuration;
         packet.dts = dts;
         packet.pts = dts + vecSampleCompositionTimeOffset[i];
+        dts += baseSampleDuration;
         packets.push_back(packet);
 #endif
     }

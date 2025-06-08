@@ -157,7 +157,6 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
                 outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
             }
 
-
             std::vector<uint8_t> pesOutput;
             std::vector<uint8_t> processed;
 
@@ -186,12 +185,9 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
                 payloadLength -= chunkSize;
 
                 outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
-
                 ++i;
             }
-
         }
-
     }
     else if (object.contentType == ContentType::AUDIO) {
         std::vector<uint8_t> wav;
@@ -204,8 +200,6 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
         ac3Encode(wav, ac3);
 
         for (int i2 = 0; i2 < 24; i2++) {
-            std::vector<uint8_t> tsBuffer;
-
             PESPacket pes;
             std::vector<uint8_t> pesOutput;
             AVRational r = { 1, static_cast<int>(object.timescale) };
@@ -216,9 +210,8 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
             pes.setDts(dts);
             pes.setStreamId(STREAM_ID_AUDIO_STREAM_0);
 
-            std::vector<uint8_t> chunk;
             const size_t chunkSize = ac3.size() / 24;
-            chunk.insert(chunk.end(), ac3.begin() + i2 * chunkSize, ac3.begin() + (i2 + 1) * chunkSize);
+            std::vector<uint8_t> chunk(ac3.begin() + i2 * chunkSize, ac3.begin() + (i2 + 1) * chunkSize);
             pes.setPayload(&chunk);
             pes.pack(pesOutput);
 
@@ -238,7 +231,6 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
                 packet.setPayloadSize(chunkSize);
                 memcpy(packet.b + packet.getHeaderSize(), pesOutput.data() + (pesOutput.size() - payloadLength), chunkSize);
                 payloadLength -= chunkSize;
-
 
                 outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize()); 
                 ++i;

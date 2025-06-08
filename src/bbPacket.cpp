@@ -3,9 +3,6 @@
 namespace ATSC3 {
 
 bool BasebandPacket::unpack(Common::ReadStream& s) {
-    uint8_t ext_type = 0;
-    uint32_t ext_len = 0;
-
     if (!baseField.unpack(s)) {
         return false;
     }
