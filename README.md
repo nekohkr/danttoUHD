@@ -1,6 +1,6 @@
 # danttoUHD
 danttoUHD는 ATSC 3.0를 MPEG-2 TS로 변환하는 툴입니다.
-현재는 ROUTE/DASH 방식만 지원하며, MMT 방식(KBS1 등)은 지원하지 않습니다.
+현재는 ROUTE 방식만 지원하며, MMT 방식(KBS1 등)은 지원하지 않습니다.
 
 ## 사용 방법
 ```
