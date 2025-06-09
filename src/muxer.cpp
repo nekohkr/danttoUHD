@@ -3,17 +3,12 @@
 #include <regex>
 #include <filesystem>
 #include <vector>
-extern "C" {
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libavutil/opt.h>
-}
 #include "pesPacket.h"
 #include "streamPacket.h"
 #include "mpeghDecoder.h"
-#include "ac3Encoder.h"
 #include "stream.h"
 #include "service.h"
+#include "rescale.h"
 
 namespace {
 
@@ -47,24 +42,24 @@ uint16_t calcPesPid(const Service& service, uint32_t streamIdx) {
     return service.getPmtPid() + 1 + streamIdx;
 }
 
-} // namespace
+}
 
 namespace StreamType {
 
-constexpr uint8_t VIDEO_MPEG1 = 0x01;
-constexpr uint8_t VIDEO_MPEG2 = 0x02;
-constexpr uint8_t AUDIO_MPEG1 = 0x03;
-constexpr uint8_t AUDIO_MPEG2 = 0x04;
-constexpr uint8_t PRIVATE_SECTION = 0x05;
-constexpr uint8_t PRIVATE_DATA = 0x06;
-constexpr uint8_t ISO_IEC_13818_6_TYPE_D = 0x0d;
-constexpr uint8_t AUDIO_AAC = 0x0f;
-constexpr uint8_t AUDIO_AAC_LATM = 0x11;
-constexpr uint8_t VIDEO_MPEG4 = 0x10;
-constexpr uint8_t METADATA = 0x15;
-constexpr uint8_t VIDEO_H264 = 0x1b;
-constexpr uint8_t VIDEO_HEVC = 0x24;
-constexpr uint8_t VIDEO_AC3 = 0x81;
+    constexpr uint8_t VIDEO_MPEG1 = 0x01;
+    constexpr uint8_t VIDEO_MPEG2 = 0x02;
+    constexpr uint8_t AUDIO_MPEG1 = 0x03;
+    constexpr uint8_t AUDIO_MPEG2 = 0x04;
+    constexpr uint8_t PRIVATE_SECTION = 0x05;
+    constexpr uint8_t PRIVATE_DATA = 0x06;
+    constexpr uint8_t ISO_IEC_13818_6_TYPE_D = 0x0d;
+    constexpr uint8_t AUDIO_AAC = 0x0f;
+    constexpr uint8_t AUDIO_AAC_LATM = 0x11;
+    constexpr uint8_t VIDEO_MPEG4 = 0x10;
+    constexpr uint8_t METADATA = 0x15;
+    constexpr uint8_t VIDEO_H264 = 0x1b;
+    constexpr uint8_t VIDEO_HEVC = 0x24;
+    constexpr uint8_t VIDEO_AC3 = 0x81;
 
 }
 
@@ -105,7 +100,7 @@ void Muxer::onSlt(const ServiceManager& sm)
     }
 
     {
-        ts::SDT sdt(true, 0, 0, sm.bsid, sm.bsid);
+        ts::SDT sdt(true, 0, true, sm.bsid, sm.bsid);
         for (const auto& service : sm.services) {
             if (!service.isMediaService()) {
                 continue;
@@ -114,6 +109,7 @@ void Muxer::onSlt(const ServiceManager& sm)
             ts::SDT::ServiceEntry tsService(&sdt);
             ts::ServiceDescriptor tsDescriptor;
             tsDescriptor.service_name = ts::UString::FromUTF8(service.shortServiceName);
+            tsDescriptor.service_type = 1;
             tsService.descs.add(duck, tsDescriptor);
             sdt.services[service.serviceId] = tsService;
         }
@@ -132,6 +128,32 @@ void Muxer::onSlt(const ServiceManager& sm)
             for (auto& packet : packets) {
                 packet.setCC(mapCC[ts::PID_SDT] & 0xF);
                 mapCC[ts::PID_SDT]++;
+
+                outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
+            }
+        }
+    }
+
+    {
+        ts::NIT nit(true, 0, true, sm.bsid);
+        ts::NetworkNameDescriptor tsDescriptor;
+        tsDescriptor.name = ts::UString::FromUTF8("danttoUHD");
+        nit.descs.add(&tsDescriptor);
+
+        ts::BinaryTable table;
+        nit.serialize(duck, table);
+
+        ts::OneShotPacketizer packetizer(duck, ts::PID_NIT);
+
+        for (size_t i = 0; i < table.sectionCount(); i++) {
+            const ts::SectionPtr& section = table.sectionAt(i);
+            packetizer.addSection(section);
+
+            ts::TSPacketVector packets;
+            packetizer.getPackets(packets);
+            for (auto& packet : packets) {
+                packet.setCC(mapCC[ts::PID_NIT] & 0xF);
+                mapCC[ts::PID_NIT]++;
 
                 outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
             }
@@ -159,7 +181,7 @@ void Muxer::onPmt(const Service& service)
             tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
         }
         if (stream.second.contentType == ContentType::AUDIO) {
-            ts::PMT::Stream tsStream(&tsPmt, StreamType::VIDEO_AC3);
+            ts::PMT::Stream tsStream(&tsPmt, StreamType::AUDIO_AAC);
             tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
         }
         if (stream.second.contentType == ContentType::SUBTITLE) {
@@ -212,7 +234,7 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
             std::vector<uint8_t> processed;
 
             hevcProcess(packet.data, processed, stream.configNalUnits);
-            
+
             PESPacket pes;
             pes.setPts(pts);
             pes.setDts(dts);
@@ -242,55 +264,81 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
     }
     else if (stream.contentType == ContentType::AUDIO) {
         std::vector<uint8_t> wav;
-        std::vector<uint8_t> ac3;
+        std::vector<uint8_t> aac;
         mpeghDecode(decryptedMP4, wav);
         if (wav.size() == 0) {
             return;
         }
 
-        ac3Encode(wav, ac3);
+        uint32_t streamKey = service.idx << 16 | stream.idx;
+        mapAACEncoder[streamKey].encode(wav, aac);
 
-        for (int i2 = 0; i2 < 24; i2++) {
-            PESPacket pes;
-            std::vector<uint8_t> pesOutput;
-            AVRational r = { 1, static_cast<int>(stream.timescale) };
-            AVRational ts = { 1, 90000 };
-            uint64_t dts = av_rescale_q((baseDts + i2 * 0x600), r, ts);
+        PESPacket pes;
+        std::vector<uint8_t> pesOutput;
+        AVRational r = { 1, static_cast<int>(stream.timescale) };
+        AVRational ts = { 1, 90000 };
+        uint64_t dts = av_rescale_q(packets[0].dts, r, ts);
 
-            pes.setPts(dts);
-            pes.setDts(dts);
-            pes.setStreamId(STREAM_ID_AUDIO_STREAM_0);
+        pes.setPts(dts);
+        pes.setDts(dts);
+        pes.setStreamId(STREAM_ID_AUDIO_STREAM_0);
+        pes.setPayload(&aac);
+        pes.pack(pesOutput);
 
-            const size_t chunkSize = ac3.size() / 24;
-            std::vector<uint8_t> chunk(ac3.begin() + i2 * chunkSize, ac3.begin() + (i2 + 1) * chunkSize);
-            pes.setPayload(&chunk);
-            pes.pack(pesOutput);
+        size_t payloadLength = pesOutput.size();
+        int i = 0;
 
-            size_t payloadLength = pesOutput.size();
-            int i = 0;
+        while (payloadLength > 0) {
+            ts::TSPacket packet;
+            packet.init(pid, mapCC[pid] & 0xF);
+            ++mapCC[pid];
 
-            while (payloadLength > 0) {
-                ts::TSPacket packet;
-                packet.init(pid, mapCC[pid] & 0xF);
-                ++mapCC[pid];
-
-                if (i == 0) {
-                    packet.setPUSI();
-                }
-
-                const size_t chunkSize = std::min(payloadLength, static_cast<size_t>(188 - packet.getHeaderSize()));
-                packet.setPayloadSize(chunkSize);
-                memcpy(packet.b + packet.getHeaderSize(), pesOutput.data() + (pesOutput.size() - payloadLength), chunkSize);
-                payloadLength -= chunkSize;
-
-                outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize()); 
-                ++i;
+            if (i == 0) {
+                packet.setPUSI();
             }
+
+            const size_t chunkSize = std::min(payloadLength, static_cast<size_t>(188 - packet.getHeaderSize()));
+            packet.setPayloadSize(chunkSize);
+            memcpy(packet.b + packet.getHeaderSize(), pesOutput.data() + (pesOutput.size() - payloadLength), chunkSize);
+            payloadLength -= chunkSize;
+
+            outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
+            ++i;
         }
     }
     else if (stream.contentType == ContentType::SUBTITLE) {
-    }
-    else {
+        PESPacket pes;
+        std::vector<uint8_t> pesOutput;
+        AVRational r = { 1, static_cast<int>(stream.timescale) };
+        AVRational ts = { 1, 90000 };
+        uint64_t dts = av_rescale_q(packets[0].dts, r, ts);
+
+        pes.setPts(dts);
+        pes.setDts(dts);
+        pes.setStreamId(STREAM_ID_PRIVATE_STREAM_1);
+        pes.setPayload(&packets[0].data);
+        pes.pack(pesOutput);
+
+        size_t payloadLength = pesOutput.size();
+        int i = 0;
+
+        while (payloadLength > 0) {
+            ts::TSPacket packet;
+            packet.init(pid, mapCC[pid] & 0xF);
+            ++mapCC[pid];
+
+            if (i == 0) {
+                packet.setPUSI();
+            }
+
+            const size_t chunkSize = std::min(payloadLength, static_cast<size_t>(188 - packet.getHeaderSize()));
+            packet.setPayloadSize(chunkSize);
+            memcpy(packet.b + packet.getHeaderSize(), pesOutput.data() + (pesOutput.size() - payloadLength), chunkSize);
+            payloadLength -= chunkSize;
+
+            outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
+            ++i;
+        }
     }
 
 }

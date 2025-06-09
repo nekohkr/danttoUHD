@@ -63,13 +63,12 @@ typedef struct WAV_HEADER {
 
 struct WAV2 {
     WAV_HEADER header;
-    std::vector<uint8_t>* buffer; // with header
-    std::vector<uint8_t>* data; // without header
+    std::vector<uint8_t> buffer; // with header
+    std::vector<uint8_t> data; // without header
     uint32_t channelMask;
     uint32_t headerSize;
 };
 
-typedef struct WAV2* HANDLE_WAV2;
 
 /**
     * \brief  Open WAV output/writer handle.
@@ -82,7 +81,7 @@ typedef struct WAV2* HANDLE_WAV2;
     *
     * \return  0: ok; -1: error
     */
-int WAV_OutputOpen2(HANDLE_WAV2* pWav, const char* outputFilename, int sampleRate, int numChannels,
+int WAV_OutputOpen2(WAV2& pWav, const char* outputFilename, int sampleRate, int numChannels,
     int bitsPerSample);
 
 /**
@@ -96,14 +95,11 @@ int WAV_OutputOpen2(HANDLE_WAV2* pWav, const char* outputFilename, int sampleRat
     *
     * \return 0: ok; -1: error
     */
-int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSamples, int nBufBits,
+int WAV_OutputWrite2(WAV2& wav, void* sampleBuffer, uint32_t numberOfSamples, int nBufBits,
     int nSigBits);
 
 /**
     * \brief       Close WAV output handle.
     * \param pWav  Pointer to WAV handle. *pWav is set to NULL.
     */
-void WAV_OutputFlush2(HANDLE_WAV2* pWav);
-
-void WAV_OutputClose2(HANDLE_WAV2* pWav);
-
+void WAV_OutputFlush2(WAV2& pWav);

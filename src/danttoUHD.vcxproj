@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LibraryPath>$(SolutionDir)thirdparty\Bento4\build2\Debug;$(SolutionDir)thirdparty\tsduck\bin\Debug-x64;$(SolutionDir)thirdparty\mpeghdec\build\lib\Debug;$(SolutionDir)thirdparty\ffmpeg\bin;$(SolutionDir)thirdparty\zlib\build\Debug;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)thirdparty\Bento4\Source\C++\Adapters;$(SolutionDir)thirdparty\Bento4\Source\C++\CApi;$(SolutionDir)thirdparty\Bento4\Source\C++\Codecs;$(SolutionDir)thirdparty\Bento4\Source\C++\Core;$(SolutionDir)thirdparty\Bento4\Source\C++\Crypto;$(SolutionDir)thirdparty\Bento4\Source\C++\MetaData;$(SolutionDir)thirdparty\tsduck\bin\include;$(SolutionDir)thirdparty\mpeghdec\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\mmtisobmff-src\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\ilo-src\include;$(SolutionDir)thirdparty\ffmpeg\include;$(SolutionDir)thirdparty\zlib;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)thirdparty\Bento4\build2\Debug;$(SolutionDir)thirdparty\tsduck\bin\Debug-x64;$(SolutionDir)thirdparty\mpeghdec\build\lib\Debug;$(SolutionDir)thirdparty\zlib\build\Debug;$(SolutionDir)thirdparty\fdk-aac\build\Debug;$(SolutionDir)thirdparty\openssl;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)thirdparty\Bento4\Source\C++\Adapters;$(SolutionDir)thirdparty\Bento4\Source\C++\CApi;$(SolutionDir)thirdparty\Bento4\Source\C++\Codecs;$(SolutionDir)thirdparty\Bento4\Source\C++\Core;$(SolutionDir)thirdparty\Bento4\Source\C++\Crypto;$(SolutionDir)thirdparty\Bento4\Source\C++\MetaData;$(SolutionDir)thirdparty\tsduck\bin\include;$(SolutionDir)thirdparty\mpeghdec\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\mmtisobmff-src\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\ilo-src\include;$(SolutionDir)thirdparty\zlib;$(SolutionDir)thirdparty\fdk-aac\libSYS\include;$(SolutionDir)thirdparty\fdk-aac\libAACenc\include;$(SolutionDir)thirdparty\fdk-aac;$(SolutionDir)thirdparty\openssl\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LibraryPath>$(SolutionDir)thirdparty\Bento4\build2\MinSizeRel;$(SolutionDir)thirdparty\tsduck\bin\Release-x64;$(SolutionDir)thirdparty\mpeghdec\build\lib\MinSizeRel;$(SolutionDir)thirdparty\ffmpeg\bin;$(LibraryPath)</LibraryPath>
-    <IncludePath>$(SolutionDir)thirdparty\Bento4\Source\C++\Adapters;$(SolutionDir)thirdparty\Bento4\Source\C++\CApi;$(SolutionDir)thirdparty\Bento4\Source\C++\Codecs;$(SolutionDir)thirdparty\Bento4\Source\C++\Core;$(SolutionDir)thirdparty\Bento4\Source\C++\Crypto;$(SolutionDir)thirdparty\Bento4\Source\C++\MetaData;$(SolutionDir)thirdparty\tsduck\bin\include;$(SolutionDir)thirdparty\mpeghdec\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\mmtisobmff-src\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\ilo-src\include;$(SolutionDir)thirdparty\ffmpeg\include;$(IncludePath)</IncludePath>
+    <LibraryPath>$(SolutionDir)thirdparty\Bento4\build2\MinSizeRel;$(SolutionDir)thirdparty\tsduck\bin\Release-x64;$(SolutionDir)thirdparty\mpeghdec\build\lib\MinSizeRel;$(SolutionDir)thirdparty\ffmpeg\bin;$(SolutionDir)thirdparty\fdk-aac\build\MinSizeRel;$(SolutionDir)thirdparty\zlib\build\Debug;$(SolutionDir)thirdparty\openssl;$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)thirdparty\Bento4\Source\C++\Adapters;$(SolutionDir)thirdparty\Bento4\Source\C++\CApi;$(SolutionDir)thirdparty\Bento4\Source\C++\Codecs;$(SolutionDir)thirdparty\Bento4\Source\C++\Core;$(SolutionDir)thirdparty\Bento4\Source\C++\Crypto;$(SolutionDir)thirdparty\Bento4\Source\C++\MetaData;$(SolutionDir)thirdparty\tsduck\bin\include;$(SolutionDir)thirdparty\mpeghdec\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\mmtisobmff-src\include;$(SolutionDir)thirdparty\mpeghdec\build\_deps\ilo-src\include;$(SolutionDir)thirdparty\zlib;$(SolutionDir)thirdparty\fdk-aac\libSYS\include;$(SolutionDir)thirdparty\fdk-aac\libAACenc\include;$(SolutionDir)thirdparty\fdk-aac;$(SolutionDir)thirdparty\openssl\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -110,7 +110,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;_DEBUG;_CONSOLE;CPPHTTPLIB_OPENSSL_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -118,7 +118,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ap4.lib;tsducklib.lib;ilo.lib;mmtisobmff.lib;mpeghdec.lib;avcodec.lib;avformat.lib;avdevice.lib;avutil.lib;swresample.lib;Ws2_32.lib;zlibstaticd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ap4.lib;tsducklib.lib;ilo.lib;mmtisobmff.lib;mpeghdec.lib;Ws2_32.lib;zlibstaticd.lib;fdk-aac.lib;libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -127,7 +127,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;NDEBUG;_CONSOLE;CPPHTTPLIB_OPENSSL_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -137,12 +137,13 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>ap4.lib;tsducklib.lib;ilo.lib;mmtisobmff.lib;mpeghdec.lib;avcodec.lib;avformat.lib;avdevice.lib;avutil.lib;swresample.lib;Ws2_32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ap4.lib;tsducklib.lib;ilo.lib;mmtisobmff.lib;mpeghdec.lib;Ws2_32.lib;zlibstaticd.lib;fdk-aac.lib;libcrypto.lib;libssl.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="ac3Encoder.cpp" />
+    <ClCompile Include="aacEncoder.cpp" />
     <ClCompile Include="alp.cpp" />
+    <ClCompile Include="config.cpp" />
     <ClCompile Include="decompress.cpp" />
     <ClCompile Include="lct.cpp" />
     <ClCompile Include="lls.cpp" />
@@ -164,10 +165,12 @@
     <ClCompile Include="rescale.cpp" />
     <ClCompile Include="stsid.cpp" />
     <ClCompile Include="udp.cpp" />
+    <ClCompile Include="wavreader.cpp" />
     <ClCompile Include="wav_file2.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="ac3Encoder.h" />
+    <ClInclude Include="aacEncoder.h" />
+    <ClInclude Include="config.h" />
     <ClInclude Include="decompress.h" />
     <ClInclude Include="mpd.h" />
     <ClInclude Include="routeObject.h" />
@@ -196,6 +199,7 @@
     <ClInclude Include="swap.h" />
     <ClInclude Include="rescale.h" />
     <ClInclude Include="udp.h" />
+    <ClInclude Include="wavreader.h" />
     <ClInclude Include="wav_file2.h" />
   </ItemGroup>
   <ItemGroup>

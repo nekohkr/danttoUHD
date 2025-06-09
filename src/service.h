@@ -27,7 +27,7 @@ public:
     bool processSignalingSTSID(const std::string& xml);
     bool processSignalingMPD(const std::string& xml);
     void updateStreamMap();
-    
+
     std::optional<std::reference_wrapper<StreamInfo>> findStream(uint32_t transportSessionId);
 
 

@@ -23,7 +23,6 @@ public:
     DemuxStatus demux(const std::vector<uint8_t>& input);
     void setHandler(DemuxerHandler* handler);
 
-    IPv4Header ipv4;
 private:
     bool processIpUdp(Common::ReadStream& stream);
     bool processLLS(Common::ReadStream& stream);
@@ -31,14 +30,10 @@ private:
 
     std::vector<uint8_t> alpBuffer;
     bool alpAligned{ false };
-
     MP4Processor mp4Processor;
-
     DemuxerHandler* handler;
-
     ServiceManager serviceManager;
     SltHandler sltHandler{ serviceManager, &handler };
-
     LgContainerUnpacker lgContainerUnpacker;
-};
 
+};

@@ -79,7 +79,6 @@ bool Demuxer::processIpUdp(Common::ReadStream& stream)
     if (!ipv4.unpack(stream)) {
         return false;
     }
-    this->ipv4 = ipv4;
 
     UDPHeader udp;
     if (!udp.unpack(stream)) {

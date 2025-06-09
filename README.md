@@ -5,6 +5,8 @@ danttoUHD는 ATSC 3.0를 MPEG-2 TS로 변환하는 툴입니다.
 ## 사용 방법
 ```
 ./danttoUHD.exe <input> <output.ts>
+options:
+	--casServerUrl=<url>
 ```
 현재는 UHD 셋탑박스 AN-US800K의 자체 컨테이너 형식만 지원하며, 다른 포맷은 지원하지 않습니다.
 
@@ -13,7 +15,6 @@ danttoUHD는 ATSC 3.0를 MPEG-2 TS로 변환하는 툴입니다.
 따라서 암호화되지 않은 지역 방송(TJB, KNN 등)에만 사용할 수 있습니다.
 
 ## TODO
-- LLS 파싱
 - MMT 지원
 - EPG 변환
 - pcap 입력 지원

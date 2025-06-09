@@ -42,14 +42,14 @@ static constexpr int32_t defaultCicpSetup = 6;
 class CProcessor {
 private:
     std::string m_wavFilename;
-    HANDLE_WAV2 m_wavFile;
+    bool fileOpen;
+    WAV2 m_wavFile;
     CIsobmffReader m_reader;
     HANDLE_MPEGH_DECODER_CONTEXT m_decoder;
 
 public:
     CProcessor(const std::shared_ptr<const ilo::ByteBuffer> input, int32_t cicpSetup)
         :
-        m_wavFile(nullptr),
         m_reader(ilo::make_unique<CIsobmffMemoryInput>(input)) {
         m_decoder = mpeghdecoder_init(cicpSetup);
         if (m_decoder == nullptr) {
@@ -60,10 +60,6 @@ public:
     ~CProcessor() {
         if (m_decoder != nullptr) {
             mpeghdecoder_destroy(m_decoder);
-        }
-
-        if (m_wavFile != nullptr) {
-            WAV_OutputClose2(&m_wavFile);
         }
     }
 
@@ -237,16 +233,14 @@ public:
                             outputLoudness = outInfo.loudness;
                         }
 
-                        if (!m_wavFile && sampleRate && numChannels) {
-                            if (WAV_OutputOpen2(&m_wavFile, "", sampleRate, numChannels,
-                                24)) {
-                                throw std::runtime_error("[" + std::to_string(frameCounter) +
-                                    "] Error: Unable to create output file " +
-                                    m_wavFilename);
+                        if (!fileOpen && sampleRate && numChannels) {
+                            if (WAV_OutputOpen2(m_wavFile, "", sampleRate, numChannels,
+                                16)) {
                             }
+                            fileOpen = true;
                         }
 
-                        if (m_wavFile && WAV_OutputWrite2(m_wavFile, outData, numChannels * frameSize,
+                        if (fileOpen && WAV_OutputWrite2(m_wavFile, outData, numChannels * frameSize,
                             SAMPLE_BITS, SAMPLE_BITS)) {
                             throw std::runtime_error("[" + std::to_string(frameCounter) +
                                 "] Error: Unable to write to output file " + m_wavFilename);
@@ -256,11 +250,9 @@ public:
                 }
             }
 
-            if (m_wavFile) {
-                WAV_OutputFlush2(&m_wavFile);
-                chunks = *m_wavFile->buffer;
-                WAV_OutputClose2(&m_wavFile);
-                return chunks;
+            if (fileOpen) {
+                WAV_OutputFlush2(m_wavFile);
+                return std::move(m_wavFile.buffer);
             }
 
             return std::vector<uint8_t>{};

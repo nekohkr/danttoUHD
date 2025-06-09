@@ -1,5 +1,4 @@
-ffmpeg/*
-!ffmpeg/.gitkeep
+ffmpeg
 tsduck/*
 !tsduck/.gitkeep
 Bento4/*
@@ -8,3 +7,7 @@ mpeghdec/*
 !mpeghdec/.gitkeep
 zlib/*
 !zlib/.gitkeep
+fdk-aac/*
+!fdk-aac/.gitkeep
+openssl/*
+!openssl/.gitkeep

@@ -1,18 +1,17 @@
-﻿
-#include "wav_file2.h"
-
+﻿#include "wav_file2.h"
+#include <vector>
 #include <stdlib.h>
 #include <sys/genericStds.h>
 
 /************** Writer ***********************/
-uint32_t FDKfwrite_EL2(const void* ptrf, INT size, uint32_t nmemb, std::vector<uint8_t>* buffer) {
+uint32_t FDKfwrite_EL2(const void* ptrf, INT size, uint32_t nmemb, std::vector<uint8_t>& buffer) {
     if (!ptrf || size <= 0 || nmemb == 0) return 0;
 
     uint32_t totalSize = static_cast<uint32_t>(size) * nmemb;
-    size_t oldSize = buffer->size();
-    buffer->resize(oldSize + totalSize);
+    size_t oldSize = buffer.size();
+    buffer.resize(oldSize + totalSize);
 
-    std::memcpy(buffer->data() + oldSize, ptrf, totalSize);
+    std::memcpy(buffer.data() + oldSize, ptrf, totalSize);
     return nmemb;
 }
 
@@ -54,52 +53,52 @@ static uint16_t Unpack(uint16_t v) {
         return (short)(((v << 8) & 0xFF00) | ((v >> 8) & 0x00FF));
 }
 
-uint32_t WAV_WriteHeader(HANDLE_WAV2 wav) {
+uint32_t WAV_WriteHeader(WAV2& wav) {
     uint32_t size = 0;
 
     std::vector<uint8_t> header;
 
-    size += (FDKfwrite_EL2(&wav->header.riffType, 1, 4, &header)) *
-        sizeof(wav->header.riffType[0]);  // RIFF Type
-    size += (FDKfwrite_EL2(&wav->header.riffSize, 4, 1, &header)) *
-        sizeof(wav->header.riffSize);  // RIFF Size
-    size += (FDKfwrite_EL2(&wav->header.waveType, 1, 4, &header)) *
-        sizeof(wav->header.waveType[0]);  // WAVE Type
-    size += (FDKfwrite_EL2(&wav->header.ds64Chunk.chunkID, 1, 4, &header)) *
-        sizeof(wav->header.ds64Chunk.chunkID[0]);  // JUNK/RF64 Type
-    size += (FDKfwrite_EL2(&wav->header.ds64Chunk.chunkSize, 4, 1, &header)) *
-        sizeof(wav->header.ds64Chunk.chunkSize);  // JUNK/RF64 Size
-    size += (FDKfwrite_EL2(&wav->header.ds64Chunk.riffSize64, 8, 1, &header)) *
-        sizeof(wav->header.ds64Chunk.riffSize64);  // Riff Size (64 bit)
-    size += (FDKfwrite_EL2(&wav->header.ds64Chunk.dataSize64, 8, 1, &header)) *
-        sizeof(wav->header.ds64Chunk.dataSize64);  // Data Size (64 bit)
-    size += (FDKfwrite_EL2(&wav->header.ds64Chunk.samplesPerCh64, 8, 1, &header)) *
-        sizeof(wav->header.ds64Chunk.samplesPerCh64);  // Number of Samples
-    size += (FDKfwrite_EL2(&wav->header.ds64Chunk.tableLength, 4, 1, &header)) *
-        sizeof(wav->header.ds64Chunk.tableLength);  // Number of valid entries in array table
-    size += (FDKfwrite_EL2(&wav->header.formatType, 1, 4, &header)) *
-        sizeof(wav->header.formatType[0]);  // format Type
-    size += (FDKfwrite_EL2(&wav->header.formatSize, 4, 1, &header)) *
-        sizeof(wav->header.formatSize);  // format Size
-    size += (FDKfwrite_EL2(&wav->header.compressionCode, 2, 1, &header)) *
-        sizeof(wav->header.compressionCode);  // compression Code
-    size += (FDKfwrite_EL2(&wav->header.numChannels, 2, 1, &header)) *
-        sizeof(wav->header.numChannels);  // numChannels
-    size += (FDKfwrite_EL2(&wav->header.sampleRate, 4, 1, &header)) *
-        sizeof(wav->header.sampleRate);  // sampleRate
-    size += (FDKfwrite_EL2(&wav->header.bytesPerSecond, 4, 1, &header)) *
-        sizeof(wav->header.bytesPerSecond);  // bytesPerSecond
-    size += (FDKfwrite_EL2(&wav->header.blockAlign, 2, 1, &header)) *
-        sizeof(wav->header.blockAlign);  // blockAlign
-    size += (FDKfwrite_EL2(&wav->header.bitsPerSample, 2, 1, &header)) *
-        sizeof(wav->header.bitsPerSample);  // bitsPerSample
-    size += (FDKfwrite_EL2(&wav->header.dataType, 1, 4, &header)) *
-        sizeof(wav->header.dataType[0]);  // dataType
-    size += (FDKfwrite_EL2(&wav->header.dataSize, 4, 1, &header)) *
-        sizeof(wav->header.dataSize);  // dataSize
+    size += (FDKfwrite_EL2(&wav.header.riffType, 1, 4, header)) *
+        sizeof(wav.header.riffType[0]);  // RIFF Type
+    size += (FDKfwrite_EL2(&wav.header.riffSize, 4, 1, header)) *
+        sizeof(wav.header.riffSize);  // RIFF Size
+    size += (FDKfwrite_EL2(&wav.header.waveType, 1, 4, header)) *
+        sizeof(wav.header.waveType[0]);  // WAVE Type
+    size += (FDKfwrite_EL2(&wav.header.ds64Chunk.chunkID, 1, 4, header)) *
+        sizeof(wav.header.ds64Chunk.chunkID[0]);  // JUNK/RF64 Type
+    size += (FDKfwrite_EL2(&wav.header.ds64Chunk.chunkSize, 4, 1, header)) *
+        sizeof(wav.header.ds64Chunk.chunkSize);  // JUNK/RF64 Size
+    size += (FDKfwrite_EL2(&wav.header.ds64Chunk.riffSize64, 8, 1, header)) *
+        sizeof(wav.header.ds64Chunk.riffSize64);  // Riff Size (64 bit)
+    size += (FDKfwrite_EL2(&wav.header.ds64Chunk.dataSize64, 8, 1, header)) *
+        sizeof(wav.header.ds64Chunk.dataSize64);  // Data Size (64 bit)
+    size += (FDKfwrite_EL2(&wav.header.ds64Chunk.samplesPerCh64, 8, 1, header)) *
+        sizeof(wav.header.ds64Chunk.samplesPerCh64);  // Number of Samples
+    size += (FDKfwrite_EL2(&wav.header.ds64Chunk.tableLength, 4, 1, header)) *
+        sizeof(wav.header.ds64Chunk.tableLength);  // Number of valid entries in array table
+    size += (FDKfwrite_EL2(&wav.header.formatType, 1, 4, header)) *
+        sizeof(wav.header.formatType[0]);  // format Type
+    size += (FDKfwrite_EL2(&wav.header.formatSize, 4, 1, header)) *
+        sizeof(wav.header.formatSize);  // format Size
+    size += (FDKfwrite_EL2(&wav.header.compressionCode, 2, 1, header)) *
+        sizeof(wav.header.compressionCode);  // compression Code
+    size += (FDKfwrite_EL2(&wav.header.numChannels, 2, 1, header)) *
+        sizeof(wav.header.numChannels);  // numChannels
+    size += (FDKfwrite_EL2(&wav.header.sampleRate, 4, 1, header)) *
+        sizeof(wav.header.sampleRate);  // sampleRate
+    size += (FDKfwrite_EL2(&wav.header.bytesPerSecond, 4, 1, header)) *
+        sizeof(wav.header.bytesPerSecond);  // bytesPerSecond
+    size += (FDKfwrite_EL2(&wav.header.blockAlign, 2, 1, header)) *
+        sizeof(wav.header.blockAlign);  // blockAlign
+    size += (FDKfwrite_EL2(&wav.header.bitsPerSample, 2, 1, header)) *
+        sizeof(wav.header.bitsPerSample);  // bitsPerSample
+    size += (FDKfwrite_EL2(&wav.header.dataType, 1, 4, header)) *
+        sizeof(wav.header.dataType[0]);  // dataType
+    size += (FDKfwrite_EL2(&wav.header.dataSize, 4, 1, header)) *
+        sizeof(wav.header.dataSize);  // dataSize
 
 
-    wav->buffer->insert(wav->buffer->begin(), header.begin(), header.end());
+    wav.buffer.insert(wav.buffer.begin(), header.begin(), header.end());
 
     return size;
 }
@@ -115,74 +114,57 @@ uint32_t WAV_WriteHeader(HANDLE_WAV2 wav) {
  * \return value:   0: ok
  *                 -1: error
  */
-int WAV_OutputOpen2(HANDLE_WAV2* pWav, const char* outputFilename, int sampleRate, int numChannels,
+int WAV_OutputOpen2(WAV2& wav, const char* outputFilename, int sampleRate, int numChannels,
     int bitsPerSample) {
-    HANDLE_WAV2 wav = (HANDLE_WAV2)calloc(1, sizeof(struct WAV2));
-    wav->buffer = new std::vector<uint8_t>();
-    wav->data = new std::vector<uint8_t>();
+    wav.buffer.reserve(15000);
     uint32_t size = 0;
-
-    if (wav == NULL) {
-        FDKprintfErr("WAV_OutputOpen(): Unable to allocate WAV struct.\n");
-        goto bail;
-    }
 
     if (bitsPerSample != 16 && bitsPerSample != 24 && bitsPerSample != 32 &&
         bitsPerSample != NBITS_FLOAT && bitsPerSample != NBITS_DOUBLE) {
         FDKprintfErr("WAV_OutputOpen(): Invalid argument (bitsPerSample).\n");
-        goto bail;
+        return -1;
     }
 
-    FDKstrncpy(wav->header.riffType, "RIFF", 4);
-    wav->header.riffSize =
+    FDKstrncpy(wav.header.riffType, "RIFF", 4);
+    wav.header.riffSize =
         LittleEndian32(0x7fffffff); /* in case fseek() doesn't work later in WAV_OutputClose() */
-    FDKstrncpy(wav->header.waveType, "WAVE", 4);
+    FDKstrncpy(wav.header.waveType, "WAVE", 4);
 
     /* Create 'JUNK' chunk for possible transition to RF64  */
-    FDKstrncpy(wav->header.ds64Chunk.chunkID, "JUNK", 4);
-    wav->header.ds64Chunk.chunkSize = LittleEndian32(28);
-    wav->header.ds64Chunk.riffSize64 = LittleEndian64(0);
-    wav->header.ds64Chunk.dataSize64 = LittleEndian64(0);
-    wav->header.ds64Chunk.samplesPerCh64 = LittleEndian64(0);
-    wav->header.ds64Chunk.tableLength = LittleEndian32(0);
+    FDKstrncpy(wav.header.ds64Chunk.chunkID, "JUNK", 4);
+    wav.header.ds64Chunk.chunkSize = LittleEndian32(28);
+    wav.header.ds64Chunk.riffSize64 = LittleEndian64(0);
+    wav.header.ds64Chunk.dataSize64 = LittleEndian64(0);
+    wav.header.ds64Chunk.samplesPerCh64 = LittleEndian64(0);
+    wav.header.ds64Chunk.tableLength = LittleEndian32(0);
 
-    FDKstrncpy(wav->header.formatType, "fmt ", 4);
-    wav->header.formatSize = LittleEndian32(16);
+    FDKstrncpy(wav.header.formatType, "fmt ", 4);
+    wav.header.formatSize = LittleEndian32(16);
 
-    wav->header.compressionCode = LittleEndian16(0x01);
+    wav.header.compressionCode = LittleEndian16(0x01);
 
     if (bitsPerSample == NBITS_FLOAT) {
-        wav->header.compressionCode = LittleEndian16(0x03);
+        wav.header.compressionCode = LittleEndian16(0x03);
         bitsPerSample = 32;
     }
     if (bitsPerSample == NBITS_DOUBLE) {
-        wav->header.compressionCode = LittleEndian16(0x03);
+        wav.header.compressionCode = LittleEndian16(0x03);
         bitsPerSample = 64;
     }
 
-    wav->header.bitsPerSample = LittleEndian16((short)bitsPerSample);
-    wav->header.numChannels = LittleEndian16((short)numChannels);
-    wav->header.blockAlign = LittleEndian16((short)(numChannels * (bitsPerSample >> 3)));
-    wav->header.sampleRate = LittleEndian32(sampleRate);
-    wav->header.bytesPerSecond = LittleEndian32(sampleRate * wav->header.blockAlign);
-    FDKstrncpy(wav->header.dataType, "data", 4);
-    wav->header.dataSize = LittleEndian32(
-        0x7fffffff - WAV_HEADER_SIZE - (sizeof(wav->header.riffType) + sizeof(wav->header.riffSize)));
+    wav.header.bitsPerSample = LittleEndian16((short)bitsPerSample);
+    wav.header.numChannels = LittleEndian16((short)numChannels);
+    wav.header.blockAlign = LittleEndian16((short)(numChannels * (bitsPerSample >> 3)));
+    wav.header.sampleRate = LittleEndian32(sampleRate);
+    wav.header.bytesPerSecond = LittleEndian32(sampleRate * wav.header.blockAlign);
+    FDKstrncpy(wav.header.dataType, "data", 4);
+    wav.header.dataSize = LittleEndian32(
+        0x7fffffff - WAV_HEADER_SIZE - (sizeof(wav.header.riffType) + sizeof(wav.header.riffSize)));
 
-    wav->header.dataSize = wav->header.riffSize = 0;
-
-    *pWav = wav;
+    wav.header.dataSize = wav.header.riffSize = 0;
 
     return 0;
 
-bail:
-    if (wav) {
-        free(wav);
-    }
-
-    *pWav = NULL;
-
-    return -1;
 }
 
 /**
@@ -197,7 +179,7 @@ bail:
  * \return value:    0: ok
  *                  -1: error
  */
-int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSamples, int nBufBits,
+int WAV_OutputWrite2(WAV2& wav, void* sampleBuffer, uint32_t numberOfSamples, int nBufBits,
     int nSigBits) {
     char* bptr = (char*)sampleBuffer;
     short* sptr = (short*)sampleBuffer;
@@ -206,8 +188,8 @@ int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSampl
     double* dptr = (double*)sampleBuffer;
     LONG tmp;
 
-    int bps = Unpack(wav->header.bitsPerSample);
-    int wavIEEEfloat = (Unpack(wav->header.compressionCode) == 0x03);
+    int bps = Unpack(wav.header.bitsPerSample);
+    int wavIEEEfloat = (Unpack(wav.header.compressionCode) == 0x03);
     uint32_t i;
 
     if ((nBufBits == NBITS_FLOAT) || (nSigBits == NBITS_FLOAT)) {
@@ -222,12 +204,8 @@ int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSampl
     /* Pack samples if required */
     if ((!wavIEEEfloat && bps == nBufBits && bps == nSigBits) ||
         (wavIEEEfloat && bps == nBufBits && nSigBits < 0)) {
-        if (FDKfwrite_EL2(sampleBuffer, (bps >> 3), numberOfSamples, wav->buffer) != numberOfSamples) {
-            FDKprintfErr("WAV_OutputWrite(): error: unable to write to file %d\n", wav->buffer);
-            return -1;
-        }
-        if (FDKfwrite_EL2(sampleBuffer, (bps >> 3), numberOfSamples, wav->data) != numberOfSamples) {
-            FDKprintfErr("WAV_OutputWrite(): error: unable to write to file %d\n", wav->buffer);
+        if (FDKfwrite_EL2(sampleBuffer, (bps >> 3), numberOfSamples, wav.buffer) != numberOfSamples) {
+            FDKprintfErr("WAV_OutputWrite(): error: unable to write to file %d\n", wav.buffer);
             return -1;
         }
     }
@@ -286,10 +264,9 @@ int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSampl
             }
 
             /* Write sample */
-            result = FDKfwrite_EL2(&tmp, bps >> 3, 1, wav->buffer);
-            result = FDKfwrite_EL2(&tmp, bps >> 3, 1, wav->data);
+            result = FDKfwrite_EL2(&tmp, bps >> 3, 1, wav.buffer);
             if (result <= 0) {
-                FDKprintfErr("WAV_OutputWrite(): error: unable to write to file %d\n", wav->buffer);
+                FDKprintfErr("WAV_OutputWrite(): error: unable to write to file\n");
                 return -1;
             }
         }
@@ -325,23 +302,21 @@ int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSampl
 
             /* Write sample */
             if (bps == 64) {
-                result = FDKfwrite_EL2(&d, 8, 1, wav->buffer);
-                result = FDKfwrite_EL2(&d, 8, 1, wav->data);
+                result = FDKfwrite_EL2(&d, 8, 1, wav.buffer);
             }
             else {
                 float f = (float)d;
-                result = FDKfwrite_EL2(&f, 4, 1, wav->buffer);
-                result = FDKfwrite_EL2(&f, 4, 1, wav->data);
+                result = FDKfwrite_EL2(&f, 4, 1, wav.buffer);
             }
 
             if (result <= 0) {
-                FDKprintfErr("WAV_OutputWrite(): error: unable to write to file %d\n", wav->buffer);
+                FDKprintfErr("WAV_OutputWrite(): error: unable to write to file\n");
                 return -1;
             }
         }
     }
 
-    wav->header.ds64Chunk.dataSize64 += (numberOfSamples * (bps >> 3));
+    wav.header.ds64Chunk.dataSize64 += (numberOfSamples * (bps >> 3));
     return 0;
 }
 
@@ -351,52 +326,39 @@ int WAV_OutputWrite2(HANDLE_WAV2 wav, void* sampleBuffer, uint32_t numberOfSampl
  * \param pWav pointer to WAV handle. *pWav is set to NULL.
  */
 
-void WAV_OutputFlush2(HANDLE_WAV2* pWav) {
-    HANDLE_WAV2 wav = *pWav;
+void WAV_OutputFlush2(WAV2& wav) {
     uint32_t size = 0;
 
-    if (wav == NULL) {
-        return;
-    }
 
-    if (wav->header.ds64Chunk.dataSize64 + WAV_HEADER_SIZE >= (1LL << 32)) {
+    if (wav.header.ds64Chunk.dataSize64 + WAV_HEADER_SIZE >= (1LL << 32)) {
         /* File is >=4GB --> write RF64 Header */
-        FDKstrncpy(wav->header.riffType, "RF64", 4);
-        FDKstrncpy(wav->header.ds64Chunk.chunkID, "ds64", 4);
-        wav->header.ds64Chunk.riffSize64 =
-            LittleEndian64(wav->header.ds64Chunk.dataSize64 + WAV_HEADER_SIZE -
-                (sizeof(wav->header.riffType) + sizeof(wav->header.riffSize)));
-        wav->header.ds64Chunk.samplesPerCh64 =
-            LittleEndian64(wav->header.ds64Chunk.dataSize64 /
-                (wav->header.numChannels * (wav->header.bitsPerSample >> 3)));
-        wav->header.ds64Chunk.dataSize64 = LittleEndian64(wav->header.ds64Chunk.dataSize64);
-        wav->header.dataSize = LittleEndian32(0xFFFFFFFF);
-        wav->header.riffSize = LittleEndian32(0xFFFFFFFF);
+        FDKstrncpy(wav.header.riffType, "RF64", 4);
+        FDKstrncpy(wav.header.ds64Chunk.chunkID, "ds64", 4);
+        wav.header.ds64Chunk.riffSize64 =
+            LittleEndian64(wav.header.ds64Chunk.dataSize64 + WAV_HEADER_SIZE -
+                (sizeof(wav.header.riffType) + sizeof(wav.header.riffSize)));
+        wav.header.ds64Chunk.samplesPerCh64 =
+            LittleEndian64(wav.header.ds64Chunk.dataSize64 /
+                (wav.header.numChannels * (wav.header.bitsPerSample >> 3)));
+        wav.header.ds64Chunk.dataSize64 = LittleEndian64(wav.header.ds64Chunk.dataSize64);
+        wav.header.dataSize = LittleEndian32(0xFFFFFFFF);
+        wav.header.riffSize = LittleEndian32(0xFFFFFFFF);
     }
     else {
         /* File is <4GB --> write RIFF Header */
-        FDKstrncpy(wav->header.riffType, "RIFF", 4);
-        FDKstrncpy(wav->header.ds64Chunk.chunkID, "JUNK", 4);
-        wav->header.dataSize = (uint32_t)(wav->header.ds64Chunk.dataSize64 & 0x00000000FFFFFFFFLL);
-        wav->header.riffSize =
-            LittleEndian32(wav->header.dataSize + WAV_HEADER_SIZE -
-                (sizeof(wav->header.riffType) + sizeof(wav->header.riffSize)));
-        wav->header.dataSize = LittleEndian32(wav->header.dataSize);
-        wav->header.ds64Chunk.chunkSize = LittleEndian32(28);
-        wav->header.ds64Chunk.riffSize64 = LittleEndian64(0);
-        wav->header.ds64Chunk.dataSize64 = LittleEndian64(0);
-        wav->header.ds64Chunk.samplesPerCh64 = LittleEndian64(0);
-        wav->header.ds64Chunk.tableLength = LittleEndian32(0);
+        FDKstrncpy(wav.header.riffType, "RIFF", 4);
+        FDKstrncpy(wav.header.ds64Chunk.chunkID, "JUNK", 4);
+        wav.header.dataSize = (uint32_t)(wav.header.ds64Chunk.dataSize64 & 0x00000000FFFFFFFFLL);
+        wav.header.riffSize =
+            LittleEndian32(wav.header.dataSize + WAV_HEADER_SIZE -
+                (sizeof(wav.header.riffType) + sizeof(wav.header.riffSize)));
+        wav.header.dataSize = LittleEndian32(wav.header.dataSize);
+        wav.header.ds64Chunk.chunkSize = LittleEndian32(28);
+        wav.header.ds64Chunk.riffSize64 = LittleEndian64(0);
+        wav.header.ds64Chunk.dataSize64 = LittleEndian64(0);
+        wav.header.ds64Chunk.samplesPerCh64 = LittleEndian64(0);
+        wav.header.ds64Chunk.tableLength = LittleEndian32(0);
     }
 
     size = WAV_WriteHeader(wav);
-}
-
-void WAV_OutputClose2(HANDLE_WAV2* pWav) {
-    HANDLE_WAV2 wav = *pWav;
-
-    delete wav->buffer;
-    delete wav->data;
-    free(wav);
-    *pWav = NULL;
 }

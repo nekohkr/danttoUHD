@@ -8,11 +8,13 @@
 #include <Ap4StreamCipher.h>
 #include <string>
 #include <iostream>
+#include <optional>
 #include <algorithm>
+#include <regex>
+#include <tuple>
 #include "routeObject.h"
-#ifdef USE_CAS_DECRYPTION
 #include "httplib.h"
-#endif
+#include "config.h"
 
 namespace {
 
@@ -34,6 +36,51 @@ std::array<uint8_t, 16> toArray16(const std::vector<uint8_t>& vec) {
     std::array<uint8_t, 16> arr;
     std::copy(vec.begin(), vec.end(), arr.begin());
     return arr;
+}
+
+std::optional<std::tuple<std::string, std::string, std::string>> splitUrl(const std::string& fullUrl) {
+    std::regex urlRegex(R"((https?)://([^/]+)(/.*))");
+    std::smatch match;
+    if (std::regex_match(fullUrl, match, urlRegex)) {
+        std::string scheme = match[1];
+        std::string host = match[2];
+        std::string path = match[3];
+        return std::make_tuple(scheme, host, path);
+    }
+    else {
+        return std::nullopt;
+    }
+}
+
+bool aes128_ctr_decrypt(const std::vector<uint8_t>& ciphertext,
+    const std::array<uint8_t, 16>& key,
+    const std::array<uint8_t, 16>& iv,
+    std::vector<uint8_t>& plaintext) {
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!ctx) return false;
+
+    if (1 != EVP_DecryptInit_ex(ctx, EVP_aes_128_ctr(), nullptr, key.data(), iv.data())) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+
+    plaintext.resize(ciphertext.size() + EVP_CIPHER_block_size(EVP_aes_128_ctr()));
+
+    int out_len1 = 0;
+    if (1 != EVP_DecryptUpdate(ctx, plaintext.data(), &out_len1, ciphertext.data(), ciphertext.size())) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+
+    int out_len2 = 0;
+    if (1 != EVP_DecryptFinal_ex(ctx, plaintext.data() + out_len1, &out_len2)) {
+        EVP_CIPHER_CTX_free(ctx);
+        return false;
+    }
+
+    plaintext.resize(out_len1 + out_len2);
+    EVP_CIPHER_CTX_free(ctx);
+    return true;
 }
 
 }
@@ -146,6 +193,10 @@ void MP4Processor::ProcessSenc(AP4_Atom* trun) {
 }
 
 bool MP4Processor::ProcessPssh(AP4_Atom* trun) {
+    if (config.casServerUrl == "") {
+        return true;
+    }
+
     AP4_DataBuffer buffer;
     AP4_MemoryByteStream* stream = new AP4_MemoryByteStream(buffer);
 
@@ -163,24 +214,28 @@ bool MP4Processor::ProcessPssh(AP4_Atom* trun) {
             return pair.first == kid;
         });
 
-
-#ifdef USE_CAS_DECRYPTION
     if (it == keyCache.end()) {
-
         AP4_UI32 ecmSize = 0;
         stream->ReadUI32(ecmSize);
 
         std::vector<uint8_t> ecm(ecmSize);
         stream->Read(ecm.data(), ecmSize);
 
-        httplib::Client cli("http://192.168.0.12:8084");
+        auto result = splitUrl(config.casServerUrl);
+        if (!result) {
+            return false;
+        }
+
+        auto [scheme, host, path] = *result;
+
+        httplib::Client cli(scheme + "://" + host);
 
         std::vector<uint8_t> data;
         data.insert(data.end(), kid.begin(), kid.end());
         data.insert(data.end(), ecm.begin(), ecm.end());
 
         std::string body(data.begin(), data.end());
-        auto res = cli.Post("/v1/cas/ecm", body, "application/octet-stream");
+        auto res = cli.Post(path, body, "application/octet-stream");
 
         if (res && res->status == 200) {
             std::istringstream iss(res.value().body);
@@ -201,7 +256,6 @@ bool MP4Processor::ProcessPssh(AP4_Atom* trun) {
             return false;
         }
     }
-#endif
 
     stream->Release();
     return true;
@@ -224,9 +278,45 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
         std::vector<uint8_t> segment(vecSampleSize[i]);
         stream->Read(segment.data(), vecSampleSize[i]);
 
-#ifdef USE_CAS_DECRYPTION
-        std::vector<uint8_t> decrypted(vecSampleSize[i]);
-        if (vecIv.size() < i + 1) {
+        if (config.casServerUrl != "") {
+            std::vector<uint8_t> decrypted(vecSampleSize[i]);
+            if (vecIv.size() < i + 1) {
+                decryptedMdat.insert(decryptedMdat.end(), segment.begin(), segment.end());
+
+                StreamPacket packet;
+                packet.data = segment;
+                packet.dts = dts;
+                packet.pts = dts + vecSampleCompositionTimeOffset[i];
+                dts += baseSampleDuration;
+                packets.push_back(packet);
+            }
+            else {
+                auto it = std::find_if(keyCache.begin(), keyCache.end(),
+                    [&](const auto& pair) {
+                        return pair.first == currentKid;
+                    }
+                );
+
+                if (it == keyCache.end()) {
+                    stream->Release();
+                    return false;
+                }
+
+                aes128_ctr_decrypt(segment, it->second, vecIv[i], decrypted);
+
+
+
+                decryptedMdat.insert(decryptedMdat.end(), decrypted.begin(), decrypted.end());
+
+                StreamPacket packet;
+                packet.data = std::move(decrypted);
+                packet.dts = dts;
+                packet.pts = dts + vecSampleCompositionTimeOffset[i];
+                dts += baseSampleDuration;
+                packets.push_back(packet);
+            }
+        }
+        else {
             decryptedMdat.insert(decryptedMdat.end(), segment.begin(), segment.end());
 
             StreamPacket packet;
@@ -236,55 +326,6 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
             dts += baseSampleDuration;
             packets.push_back(packet);
         }
-        else {
-            AP4_BlockCipher* block_cipher = NULL;
-            AP4_BlockCipher::CtrParams ctr_params;
-            ctr_params.counter_size = 8;
-
-            auto it = std::find_if(keyCache.begin(), keyCache.end(),
-                [&](const auto& pair) {
-                    return pair.first == currentKid;
-                }
-            );
-
-            if (it == keyCache.end()) {
-                stream->Release();
-                return false;
-            }
-
-            auto block_cipher_factory = &AP4_DefaultBlockCipherFactory::Instance;
-            AP4_Result result = block_cipher_factory->CreateCipher(AP4_BlockCipher::AES_128,
-                AP4_BlockCipher::DECRYPT,
-                AP4_BlockCipher::CTR,
-                &ctr_params,
-                it->second.data(),
-                16,
-                block_cipher);
-
-            AP4_CtrStreamCipher* stream_cipher = new AP4_CtrStreamCipher(block_cipher, 16);
-            stream_cipher->SetIV(vecIv[i].data());
-            stream_cipher->ProcessBuffer(segment.data(), segment.size(), decrypted.data());
-            delete stream_cipher;
-
-            decryptedMdat.insert(decryptedMdat.end(), decrypted.begin(), decrypted.end());
-
-            StreamPacket packet;
-            packet.data = std::move(decrypted);
-            packet.dts = dts;
-            packet.pts = dts + vecSampleCompositionTimeOffset[i];
-            dts += baseSampleDuration;
-            packets.push_back(packet);
-        }
-#else
-        decryptedMdat.insert(decryptedMdat.end(), segment.begin(), segment.end());
-
-        StreamPacket packet;
-        packet.data = segment;
-        packet.dts = dts;
-        packet.pts = dts + vecSampleCompositionTimeOffset[i];
-        dts += baseSampleDuration;
-        packets.push_back(packet);
-#endif
     }
 
     {

@@ -2,11 +2,12 @@
 #include <string>
 #include <unordered_map>
 #include <list>
+#include <functional>
 #include <tsduck.h>
 #include "streamPacket.h"
 #include "demuxerHandler.h"
-#include "ac3Encoder.h"
 #include "serviceManager.h"
+#include "aacEncoder.h"
 
 struct AVCodecContext;
 
@@ -19,9 +20,10 @@ private:
     virtual void onSlt(const ServiceManager& sm) override;
     virtual void onPmt(const Service& service) override;
     virtual void onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& chunks, const std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts, uint32_t transportObjectId) override;
-    bool writePat();
 
     std::unordered_map<uint16_t, uint8_t> mapCC;
     OutputCallback outputCallback;
     ts::DuckContext duck;
+
+    std::map<uint32_t, AacEncoder> mapAACEncoder;
 };

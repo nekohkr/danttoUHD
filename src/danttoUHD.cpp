@@ -10,6 +10,7 @@
 #include "muxer.h"
 #include "streamPacket.h"
 #include "httplib.h"
+#include "config.h"
 
 Demuxer demuxer;
 Muxer muxer;
@@ -21,6 +22,10 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         std::string arg(argv[i]);
 
+        if (arg.find("--casServerUrl=") == 0) {
+            config.casServerUrl = arg.substr(std::string("--casServerUrl=").length());
+        }
+
         if (inputPath == "") {
             inputPath = arg;
         }
@@ -30,7 +35,9 @@ int main(int argc, char* argv[]) {
     }
 
     if (inputPath == "" || outputPath == "") {
-        std::cerr << "danttoKR.exe <input.atsc3> <output.ts>" << std::endl;
+        std::cerr << "danttoUHD.exe <input> <output.ts>" << std::endl;
+        std::cerr << "options:" << std::endl;
+        std::cerr << "\t--casServerUrl=<url>" << std::endl;
         return 1;
     }
 

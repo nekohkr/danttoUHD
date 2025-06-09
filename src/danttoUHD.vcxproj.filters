@@ -51,9 +51,6 @@
     <ClCompile Include="wav_file2.cpp">
       <Filter>mpegh</Filter>
     </ClCompile>
-    <ClCompile Include="ac3Encoder.cpp">
-      <Filter>mpegh</Filter>
-    </ClCompile>
     <ClCompile Include="rescale.cpp">
       <Filter>muxer</Filter>
     </ClCompile>
@@ -97,6 +94,13 @@
     <ClCompile Include="mpd.cpp">
       <Filter>demux</Filter>
     </ClCompile>
+    <ClCompile Include="aacEncoder.cpp">
+      <Filter>mpegh</Filter>
+    </ClCompile>
+    <ClCompile Include="wavreader.cpp">
+      <Filter>mpegh</Filter>
+    </ClCompile>
+    <ClCompile Include="config.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stream.h">
@@ -133,9 +137,6 @@
       <Filter>mpegh</Filter>
     </ClInclude>
     <ClInclude Include="wav_file2.h">
-      <Filter>mpegh</Filter>
-    </ClInclude>
-    <ClInclude Include="ac3Encoder.h">
       <Filter>mpegh</Filter>
     </ClInclude>
     <ClInclude Include="atsc3.h">
@@ -187,6 +188,13 @@
     <ClInclude Include="streamInfo.h">
       <Filter>demux</Filter>
     </ClInclude>
+    <ClInclude Include="aacEncoder.h">
+      <Filter>mpegh</Filter>
+    </ClInclude>
+    <ClInclude Include="wavreader.h">
+      <Filter>mpegh</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="pesPacket.h">

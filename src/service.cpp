@@ -65,6 +65,19 @@ std::unordered_map<std::string, std::string> parseMultipartRelated(const std::st
     return files;
 }
 
+std::string normalizeFileName(std::string input, const std::string& representationId) {
+    size_t pos = input.find("$Number$");
+    if (pos != std::string::npos) {
+        input.replace(pos, 8, "$TOI$");
+    }
+    pos = input.find("$RepresentationID$");
+    if (pos != std::string::npos) {
+        input.replace(pos, 18, representationId);
+    }
+
+    return input;
+}
+
 }
 
 bool Service::onALP(const ATSC3::LCT& lct, const std::vector<uint8_t>& payload)
@@ -92,7 +105,6 @@ bool Service::onALP(const ATSC3::LCT& lct, const std::vector<uint8_t>& payload)
     return false;
 }
 
-
 bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId)
 {
     if (object.transportSessionId == 0) {
@@ -117,7 +129,6 @@ bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId
         if (stream->get().initToi == transportObjectId) {
             stream->get().initMP4 = object.buffer;
 
-            // 굳이 분리해야하나?
             MP4ConfigParser::MP4Config mp4Config;
             MP4ConfigParser::parse(stream->get().initMP4, mp4Config);
             stream->get().timescale = mp4Config.timescale;
@@ -140,6 +151,8 @@ bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId
         bool ret = mp4Processor.process(input, packets, decryptedMP4, baseDts);
     }
     else if (stream->get().contentType == ContentType::SUBTITLE) {
+        MP4Processor mp4Processor;
+        bool ret = mp4Processor.process(input, packets, decryptedMP4, baseDts);
         // todo
     }
 
@@ -181,17 +194,20 @@ void Service::updateStreamMap()
             streamInfo.dstIpAddr = rs.dstIpAddress;
             streamInfo.dstPort = rs.dstPort;
 
-            std::string fileTemplate = ls.enhancedFileDeliveryTable.fileTemplate;
+            std::string fileTemplate = normalizeFileName(ls.enhancedFileDeliveryTable.fileTemplate, "");
 
             // find mpd
             bool findMpd = false;
             for (const auto& rep : mpd.representations) {
-                std::string mediaFileName = rep.mediaFileName;
+                std::string mediaFileName = normalizeFileName(rep.mediaFileName, rep.id);
 
-                // normalize
                 size_t pos = mediaFileName.find("$Number$");
                 if (pos != std::string::npos) {
                     mediaFileName.replace(pos, 8, "$TOI$");
+                }
+                pos = mediaFileName.find("$RepresentationID$");
+                if (pos != std::string::npos) {
+                    mediaFileName.replace(pos, 18, rep.id);
                 }
                 pos = fileTemplate.find("$Number$");
                 if (pos != std::string::npos) {
@@ -199,10 +215,13 @@ void Service::updateStreamMap()
                 }
 
                 if (mediaFileName == fileTemplate) {
+                    streamInfo.language = rep.lang;
                     streamInfo.contentType = rep.contentType;
 
                     for (const auto& item : ls.enhancedFileDeliveryTable.fileDeliveryTable) {
-                        if (item.contentLocation == rep.initializationFileName) {
+                        std::string initializationFileName = normalizeFileName(rep.initializationFileName, rep.id);
+
+                        if (item.contentLocation == initializationFileName) {
                             streamInfo.hasInitToi = true;
                             streamInfo.initToi = item.toi;
                             break;
@@ -261,7 +280,6 @@ void Service::updateStreamMap()
             ++it;
         }
     }
-
 
     if (demuxerHandler != nullptr && *demuxerHandler != nullptr) {
         (*demuxerHandler)->onPmt(*this);

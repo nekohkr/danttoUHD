@@ -3,6 +3,8 @@
 
 bool MPD::parse(const std::string& xml)
 {
+    representations.clear();
+
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_buffer(xml.data(), xml.size());
 
@@ -16,6 +18,10 @@ bool MPD::parse(const std::string& xml)
                 Representation rep;
                 for (const pugi::xml_node& representationNode : adaptationSetNode.children("ContentProtection")) {
                     rep.contentProtection.push_back(representationNode.attribute("value").value());
+                }
+                
+                if (adaptationSetNode.attribute("lang")) {
+                    rep.lang = adaptationSetNode.attribute("lang").value();
                 }
 
                 std::string contentType = adaptationSetNode.attribute("contentType").value();
@@ -102,20 +108,6 @@ std::optional<std::reference_wrapper<MPD::Representation>> MPD::findRepresentati
             return std::ref(rep);
         }
     }
-    /*
-    size_t pos = fileName.find("$RepresentationID$");
-    if (pos != std::string::npos) {
-        fileName.replace(pos, 18, id);
-    }
-    pos = fileName.find("$Number$");
-    if (pos != std::string::npos) {
-        fileName.replace(pos, 8, "1234");
-    }
-    pos = initFileName.find("$RepresentationID$");
-    if (pos != std::string::npos) {
-        initFileName.replace(pos, 18, id);
-    }
-    */
     return std::optional<std::reference_wrapper<Representation>>();
 }
 
