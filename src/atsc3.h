@@ -13,4 +13,12 @@ enum class AlpPacketType {
     MPEG2_TS = 0x7
 };
 
+enum class ServiceCategory {
+    LinearAVService = 0x1,
+    LinearAudioOnlyService = 0x2,
+    AppBasedService = 0x3,
+    EsgService = 0x4,
+    EasService = 0x5,
+};
+
 }

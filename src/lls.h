@@ -13,7 +13,7 @@ public:
     uint8_t groupId;
     uint8_t groupCount;
     uint8_t tableVersion;
-
+    std::string payload;
 };
 
 }

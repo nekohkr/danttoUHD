@@ -6,3 +6,5 @@ Bento4/*
 !Bento4/.gitkeep
 mpeghdec/*
 !mpeghdec/.gitkeep
+zlib/*
+!zlib/.gitkeep

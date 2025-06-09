@@ -1,9 +1,13 @@
 #pragma once
-#include "RouteObject.h"
+#include "streamPacket.h"
+#include "streamInfo.h"
 
+class ServiceManager;
+class Service;
 class DemuxerHandler {
 public:
-    virtual void onPmt(const std::unordered_map<uint32_t, RouteObject>& objects) {};
-    virtual void onStreamData(const std::vector<StreamPacket>& chunks, const RouteObject& object, const std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts, uint32_t transportObjectId) {};
+    virtual void onSlt(const ServiceManager& sm) {}
+    virtual void onPmt(const Service& service) {}
+    virtual void onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& chunks, const std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts, uint32_t transportObjectId) {}
 
 };

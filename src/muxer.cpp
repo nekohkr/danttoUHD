@@ -13,10 +13,11 @@ extern "C" {
 #include "mpeghDecoder.h"
 #include "ac3Encoder.h"
 #include "stream.h"
+#include "service.h"
 
 namespace {
 
-void hevcProcess(const std::vector<uint8_t>& input, std::vector<uint8_t>& output, const RouteObject& object) {
+void hevcProcess(const std::vector<uint8_t>& input, std::vector<uint8_t>& output, const std::vector<uint8_t>& configNalUnits) {
     bool first = true;
     size_t pos = 0;
     while (pos + 4 <= input.size()) {
@@ -31,7 +32,7 @@ void hevcProcess(const std::vector<uint8_t>& input, std::vector<uint8_t>& output
         output.insert(output.end(), input.begin() + pos, input.begin() + pos + nalUnitSize);
 
         if (first) {
-            output.insert(output.end(), object.configNalUnits.begin(), object.configNalUnits.end());
+            output.insert(output.end(), configNalUnits.begin(), configNalUnits.end());
             first = false;
         }
         pos += nalUnitSize;
@@ -42,7 +43,11 @@ uint64_t convertDTS(uint64_t dts_mp4, uint32_t timescale_mp4, uint32_t timescale
     return static_cast<uint64_t>(static_cast<double>(dts_mp4) / timescale_mp4 * timescale_ts);
 }
 
+uint16_t calcPesPid(const Service& service, uint32_t streamIdx) {
+    return service.getPmtPid() + 1 + streamIdx;
 }
+
+} // namespace
 
 namespace StreamType {
 
@@ -63,59 +68,103 @@ constexpr uint8_t VIDEO_AC3 = 0x81;
 
 }
 
-bool Muxer::writePat()
-{
-    ts::PAT pat(0 % 32, true);
-    pat.pmts[0x100] = 0x1F0;
-
-    ts::BinaryTable table;
-    pat.serialize(duck, table);
-
-    ts::OneShotPacketizer packetizer(duck, ts::PID_PAT);
-
-    for (size_t i = 0; i < table.sectionCount(); i++) {
-        const ts::SectionPtr& section = table.sectionAt(i);
-        packetizer.addSection(section);
-
-        ts::TSPacketVector packets;
-        packetizer.getPackets(packets);
-        for (auto& packet : packets) {
-            packet.setCC(mapCC[ts::PID_PAT] & 0xF);
-            mapCC[ts::PID_PAT]++;
-
-            outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
-        }
-    }
-    return false;
-}
-
 void Muxer::setOutputCallback(OutputCallback cb)
 {
     outputCallback = std::move(cb);
 }
 
-void Muxer::onPmt(const std::unordered_map<uint32_t, RouteObject>& objects)
+void Muxer::onSlt(const ServiceManager& sm)
 {
-    writePat();
-    uint16_t pid = 0x1F0;
-    ts::PMT tsPmt(0 % 32, true, 0x100);
+    {
+        ts::PAT pat(0, true, sm.bsid, sm.bsid);
+        for (const auto& service : sm.services) {
+            if (!service.isMediaService()) {
+                continue;
+            }
+            pat.pmts[service.serviceId] = service.getPmtPid();
+        }
 
-    for (const auto& object : objects) {
-        if (object.second.contentType == ContentType::VIDEO) {
-            ts::PMT::Stream stream(&tsPmt, StreamType::VIDEO_HEVC);
+        ts::BinaryTable table;
+        pat.serialize(duck, table);
+
+        ts::OneShotPacketizer packetizer(duck, ts::PID_PAT);
+
+        for (size_t i = 0; i < table.sectionCount(); i++) {
+            const ts::SectionPtr& section = table.sectionAt(i);
+            packetizer.addSection(section);
+
+            ts::TSPacketVector packets;
+            packetizer.getPackets(packets);
+            for (auto& packet : packets) {
+                packet.setCC(mapCC[ts::PID_PAT] & 0xF);
+                mapCC[ts::PID_PAT]++;
+
+                outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
+            }
+        }
+    }
+
+    {
+        ts::SDT sdt(true, 0, 0, sm.bsid, sm.bsid);
+        for (const auto& service : sm.services) {
+            if (!service.isMediaService()) {
+                continue;
+            }
+
+            ts::SDT::ServiceEntry tsService(&sdt);
+            ts::ServiceDescriptor tsDescriptor;
+            tsDescriptor.service_name = ts::UString::FromUTF8(service.shortServiceName);
+            tsService.descs.add(duck, tsDescriptor);
+            sdt.services[service.serviceId] = tsService;
+        }
+
+        ts::BinaryTable table;
+        sdt.serialize(duck, table);
+
+        ts::OneShotPacketizer packetizer(duck, ts::PID_SDT);
+
+        for (size_t i = 0; i < table.sectionCount(); i++) {
+            const ts::SectionPtr& section = table.sectionAt(i);
+            packetizer.addSection(section);
+
+            ts::TSPacketVector packets;
+            packetizer.getPackets(packets);
+            for (auto& packet : packets) {
+                packet.setCC(mapCC[ts::PID_SDT] & 0xF);
+                mapCC[ts::PID_SDT]++;
+
+                outputCallback(packet.b, packet.getHeaderSize() + packet.getPayloadSize());
+            }
+        }
+    }
+}
+
+void Muxer::onPmt(const Service& service)
+{
+    if (!service.isMediaService()) {
+        return;
+    }
+
+    uint16_t pid = service.getPmtPid();
+    ts::PMT tsPmt(0, true, 0x1FFF);
+    tsPmt.service_id = service.serviceId;
+
+    for (const auto& stream : service.mapStream) {
+        if (stream.second.contentType == ContentType::VIDEO) {
+            ts::PMT::Stream tsStream(&tsPmt, StreamType::VIDEO_HEVC);
             ts::RegistrationDescriptor descriptor;
             descriptor.format_identifier = 0x48455643;
-            stream.descs.add(duck, descriptor);
+            tsStream.descs.add(duck, descriptor);
 
-            tsPmt.streams[0x110 + object.second.transportSessionId] = stream;
+            tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
         }
-        if (object.second.contentType == ContentType::AUDIO) {
-            ts::PMT::Stream stream(&tsPmt, StreamType::VIDEO_AC3);
-            tsPmt.streams[0x110 + object.second.transportSessionId] = stream;
+        if (stream.second.contentType == ContentType::AUDIO) {
+            ts::PMT::Stream tsStream(&tsPmt, StreamType::VIDEO_AC3);
+            tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
         }
-        if (object.second.contentType == ContentType::SUBTITLE) {
-            ts::PMT::Stream stream(&tsPmt, StreamType::ISO_IEC_13818_6_TYPE_D);
-            tsPmt.streams[0x110 + object.second.transportSessionId] = stream;
+        if (stream.second.contentType == ContentType::SUBTITLE) {
+            ts::PMT::Stream tsStream(&tsPmt, StreamType::ISO_IEC_13818_6_TYPE_D);
+            tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
         }
     }
 
@@ -139,11 +188,13 @@ void Muxer::onPmt(const std::unordered_map<uint32_t, RouteObject>& objects)
     }
 }
 
-void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteObject& object, const std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts, uint32_t transportObjectId)
+void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& packets, const std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts, uint32_t transportObjectId)
 {
-    if (object.contentType == ContentType::VIDEO) {
+    uint16_t pid = calcPesPid(service, stream.idx);
+
+    if (stream.contentType == ContentType::VIDEO) {
         for (const auto& packet : packets) {
-            AVRational r = { 1, static_cast<int>(object.timescale) };
+            AVRational r = { 1, static_cast<int>(stream.timescale) };
             AVRational ts = { 1, 90000 };
             uint64_t dts = av_rescale_q(packet.dts, r, ts);
             uint64_t pts = av_rescale_q(packet.pts, r, ts);
@@ -160,7 +211,7 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
             std::vector<uint8_t> pesOutput;
             std::vector<uint8_t> processed;
 
-            hevcProcess(packet.data, processed, object);
+            hevcProcess(packet.data, processed, stream.configNalUnits);
             
             PESPacket pes;
             pes.setPts(pts);
@@ -173,8 +224,8 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
             int i = 0;
             while (payloadLength > 0) {
                 ts::TSPacket packet;
-                packet.init(0x110 + object.transportSessionId, mapCC[0x110 + object.transportSessionId] & 0xF);
-                ++mapCC[0x110 + object.transportSessionId];
+                packet.init(pid, mapCC[pid] & 0xF);
+                ++mapCC[pid];
                 if (i == 0) {
                     packet.setPUSI();
                 }
@@ -189,7 +240,7 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
             }
         }
     }
-    else if (object.contentType == ContentType::AUDIO) {
+    else if (stream.contentType == ContentType::AUDIO) {
         std::vector<uint8_t> wav;
         std::vector<uint8_t> ac3;
         mpeghDecode(decryptedMP4, wav);
@@ -202,7 +253,7 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
         for (int i2 = 0; i2 < 24; i2++) {
             PESPacket pes;
             std::vector<uint8_t> pesOutput;
-            AVRational r = { 1, static_cast<int>(object.timescale) };
+            AVRational r = { 1, static_cast<int>(stream.timescale) };
             AVRational ts = { 1, 90000 };
             uint64_t dts = av_rescale_q((baseDts + i2 * 0x600), r, ts);
 
@@ -220,8 +271,8 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
 
             while (payloadLength > 0) {
                 ts::TSPacket packet;
-                packet.init(0x110 + object.transportSessionId, mapCC[0x110 + object.transportSessionId] & 0xF);
-                ++mapCC[0x110 + object.transportSessionId];
+                packet.init(pid, mapCC[pid] & 0xF);
+                ++mapCC[pid];
 
                 if (i == 0) {
                     packet.setPUSI();
@@ -237,7 +288,7 @@ void Muxer::onStreamData(const std::vector<StreamPacket>& packets, const RouteOb
             }
         }
     }
-    else if (object.contentType == ContentType::SUBTITLE) {
+    else if (stream.contentType == ContentType::SUBTITLE) {
     }
     else {
     }

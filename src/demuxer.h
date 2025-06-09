@@ -7,6 +7,8 @@
 #include "demuxerHandler.h"
 #include "lgContainer.h"
 #include "stream.h"
+#include "serviceManager.h"
+#include "sltHandler.h"
 
 enum class DemuxStatus {
     Ok = 0x0000,
@@ -25,21 +27,17 @@ public:
 private:
     bool processIpUdp(Common::ReadStream& stream);
     bool processLLS(Common::ReadStream& stream);
-    bool processMMTP(Common::ReadStream& stream);
-    bool processLCT(Common::ReadStream& stream);
-    bool processRouteObject(RouteObject& alcStream, uint32_t transportObjectId);
-    bool processConfigs();
+    bool processALC(Common::ReadStream& stream, Service& service);
 
-    std::unordered_map<uint32_t, RouteObject> routeObjects;
-    
     std::vector<uint8_t> alpBuffer;
     bool alpAligned{ false };
 
     MP4Processor mp4Processor;
 
-    std::map<std::string, std::string> configFiles;
-    std::map<uint32_t, std::string> stsid;
     DemuxerHandler* handler;
+
+    ServiceManager serviceManager;
+    SltHandler sltHandler{ serviceManager, &handler };
 
     LgContainerUnpacker lgContainerUnpacker;
 };

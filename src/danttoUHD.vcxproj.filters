@@ -22,6 +22,9 @@
     <Filter Include="xml">
       <UniqueIdentifier>{1d8951cc-f02c-48f7-b0c3-bebe3d6ddb08}</UniqueIdentifier>
     </Filter>
+    <Filter Include="demux\tables">
+      <UniqueIdentifier>{ccd0f813-0b77-4b20-88b7-6d671defd7cc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stream.cpp">
@@ -76,6 +79,24 @@
       <Filter>demux\structs\atsc3</Filter>
     </ClCompile>
     <ClCompile Include="danttoUHD.cpp" />
+    <ClCompile Include="service.cpp">
+      <Filter>demux</Filter>
+    </ClCompile>
+    <ClCompile Include="decompress.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="serviceManager.cpp">
+      <Filter>demux</Filter>
+    </ClCompile>
+    <ClCompile Include="sltHandler.cpp">
+      <Filter>demux\tables</Filter>
+    </ClCompile>
+    <ClCompile Include="stsid.cpp">
+      <Filter>demux</Filter>
+    </ClCompile>
+    <ClCompile Include="mpd.cpp">
+      <Filter>demux</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stream.h">
@@ -145,6 +166,27 @@
       <Filter>demux\structs\atsc3</Filter>
     </ClInclude>
     <ClInclude Include="httplib.h" />
+    <ClInclude Include="service.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="decompress.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="serviceManager.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="sltHandler.h">
+      <Filter>demux\tables</Filter>
+    </ClInclude>
+    <ClInclude Include="mpd.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="stsid.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="streamInfo.h">
+      <Filter>demux</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pesPacket.h">
