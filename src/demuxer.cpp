@@ -98,9 +98,6 @@ bool Demuxer::processIpUdp(Common::ReadStream& stream)
 
     auto service = serviceManager.findServiceByIp(ipv4.dstIpAddr, udp.dstPort);
     
-    if (service->get().serviceId != 7) {
-        return true;
-    }
     if (service) {
         processALC(stream, *service);
     }
