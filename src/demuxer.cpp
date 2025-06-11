@@ -16,6 +16,25 @@
 
 DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
     const auto callback = [this](const LgContainer& lgContainer) {
+        // continuity counter check
+        auto it = mapCC.find(lgContainer.plpId);
+        if (it == mapCC.end()) {
+            mapCC[lgContainer.plpId] = lgContainer.cc;
+        }
+        else {
+            uint8_t expectedCC = it->second + 1;
+            if (lgContainer.cc != expectedCC) {
+                fprintf(stderr,
+                    "[DROP] plpId=%u, expected_cc=%u, actual_cc=%u\n",
+                    lgContainer.plpId, expectedCC, lgContainer.cc);
+            }
+            it->second = lgContainer.cc;
+        }
+
+        if (lgContainer.errorMode == true && lgContainer.error == true) {
+            fprintf(stderr, "[ERROR] plpId=%u\n", lgContainer.plpId);
+        }
+
         Common::ReadStream s(lgContainer.payload);
 
         ATSC3::BasebandPacket basebandPacket;

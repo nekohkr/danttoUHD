@@ -9,28 +9,101 @@
 #include "stream.h"
 #include "service.h"
 #include "rescale.h"
+#include "mp4Processor.h"
+#include <Ap4HevcParser.h>
 
 namespace {
 
-void hevcProcess(const std::vector<uint8_t>& input, std::vector<uint8_t>& output, const std::vector<uint8_t>& configNalUnits) {
-    bool first = true;
-    size_t pos = 0;
-    while (pos + 4 <= input.size()) {
-        uint32_t nalUnitSize = (input[pos] << 24) | (input[pos + 1] << 16) | (input[pos + 2] << 8) | input[pos + 3];
+void hevcProcess(const MP4ConfigParser::MP4Config& mp4Config, const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
+    bool have_access_unit_delimiter = false;
+    bool have_param_sets = false;
 
-        pos += 4;
-        if (pos + nalUnitSize > input.size()) {
+    Common::ReadStream s(input);
+    while (s.leftBytes()) {
+        if (s.leftBytes() < mp4Config.nalUnitLengthSize) {
+            return;
+        }
+        uint32_t nalUnitSize = 0;
+        if (mp4Config.nalUnitLengthSize == 1) {
+            nalUnitSize = s.get8U();
+        }
+        else if (mp4Config.nalUnitLengthSize == 2) {
+            nalUnitSize = s.getBe16U();
+        }
+        else if (mp4Config.nalUnitLengthSize == 3) {
+            nalUnitSize = s.getBe16U() << 8;
+            nalUnitSize |= s.get8U();
+        }
+        else if (mp4Config.nalUnitLengthSize == 4) {
+            nalUnitSize = s.getBe32U();
+        }
+        else {
+            return;
+        }
+
+        if (s.leftBytes() < nalUnitSize) {
+            return;
+        }
+
+        unsigned int nal_unit_type = (s.peek8U() >> 1) & 0x3F;
+        if (nal_unit_type == AP4_HEVC_NALU_TYPE_AUD_NUT) {
+            have_access_unit_delimiter = true;
+        }
+        if (nal_unit_type == AP4_HEVC_NALU_TYPE_VPS_NUT ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_SPS_NUT ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_PPS_NUT) {
+            have_param_sets = true;
             break;
         }
 
-        output.insert(output.end(), { 0x00, 0x00, 0x00, 0x01 });
-        output.insert(output.end(), input.begin() + pos, input.begin() + pos + nalUnitSize);
+        s.skip(nalUnitSize);
+    }
 
-        if (first) {
-            output.insert(output.end(), configNalUnits.begin(), configNalUnits.end());
-            first = false;
+    if (!have_access_unit_delimiter) {
+        output.insert(output.end(), {0, 0, 0, 1, AP4_HEVC_NALU_TYPE_AUD_NUT << 1 , 1, 0x40});
+    }
+
+    bool prefix_added = false;
+    s.seek(0);
+    while (s.leftBytes()) {
+        uint32_t nalUnitSize = 0;
+        if (mp4Config.nalUnitLengthSize == 1) {
+            nalUnitSize = s.get8U();
         }
-        pos += nalUnitSize;
+        else if (mp4Config.nalUnitLengthSize == 2) {
+            nalUnitSize = s.getBe16U();
+        }
+        else if (mp4Config.nalUnitLengthSize == 3) {
+            nalUnitSize = s.getBe16U() << 8;
+            nalUnitSize |= s.get8U();
+        }
+        else if (mp4Config.nalUnitLengthSize == 4) {
+            nalUnitSize = s.getBe32U();
+        }
+        else {
+            return;
+        }
+
+        if (s.leftBytes() < nalUnitSize) {
+            return;
+        }
+
+        if (!have_param_sets && !prefix_added && !have_access_unit_delimiter) {
+            output.insert(output.end(), mp4Config.prefixNalUnits.begin(), mp4Config.prefixNalUnits.end());
+            prefix_added = true;
+        }
+
+        std::vector<uint8_t> buffer;
+        buffer.resize(nalUnitSize);
+        s.read(buffer.data(), nalUnitSize);
+
+        output.insert(output.end(), { 0, 0, 1 });
+        output.insert(output.end(), buffer.begin(), buffer.end());
+
+        if (!have_param_sets && !prefix_added) {
+            output.insert(output.end(), mp4Config.prefixNalUnits.begin(), mp4Config.prefixNalUnits.end());
+            prefix_added = true;
+        }
     }
 }
 
@@ -210,13 +283,13 @@ void Muxer::onPmt(const Service& service)
     }
 }
 
-void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& packets, const std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts, uint32_t transportObjectId)
+void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& packets, const std::vector<uint8_t>& decryptedMP4)
 {
     uint16_t pid = calcPesPid(service, stream.idx);
 
     if (stream.contentType == ContentType::VIDEO) {
         for (const auto& packet : packets) {
-            AVRational r = { 1, static_cast<int>(stream.timescale) };
+            AVRational r = { 1, static_cast<int>(stream.mp4Config.timescale) };
             AVRational ts = { 1, 90000 };
             uint64_t dts = av_rescale_q(packet.dts, r, ts);
             uint64_t pts = av_rescale_q(packet.pts, r, ts);
@@ -233,7 +306,7 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
             std::vector<uint8_t> pesOutput;
             std::vector<uint8_t> processed;
 
-            hevcProcess(packet.data, processed, stream.configNalUnits);
+            hevcProcess(stream.mp4Config, packet.data, processed);
 
             PESPacket pes;
             pes.setPts(pts);
@@ -275,7 +348,7 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
 
         PESPacket pes;
         std::vector<uint8_t> pesOutput;
-        AVRational r = { 1, static_cast<int>(stream.timescale) };
+        AVRational r = { 1, static_cast<int>(stream.mp4Config.timescale) };
         AVRational ts = { 1, 90000 };
         uint64_t dts = av_rescale_q(packets[0].dts, r, ts);
 
@@ -309,7 +382,7 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
     else if (stream.contentType == ContentType::SUBTITLE) {
         PESPacket pes;
         std::vector<uint8_t> pesOutput;
-        AVRational r = { 1, static_cast<int>(stream.timescale) };
+        AVRational r = { 1, static_cast<int>(stream.mp4Config.timescale) };
         AVRational ts = { 1, 90000 };
         uint64_t dts = av_rescale_q(packets[0].dts, r, ts);
 

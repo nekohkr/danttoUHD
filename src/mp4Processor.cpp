@@ -113,26 +113,52 @@ bool MP4ConfigParser::parse(const std::vector<uint8_t>& input, MP4Config& config
             }
             if (hvccFind) {
                 AP4_HvccAtom* hvcc = AP4_DYNAMIC_CAST(AP4_HvccAtom, hvccFind);
-                uint32_t len = hvcc->GetNaluLengthSize();
+                config.nalUnitLengthSize = hvcc->GetNaluLengthSize();
+                config.prefixNalUnits.clear();
 
-                std::vector<uint8_t> hevcConfigNalUnits;
-
-                if (hvcc->GetSequences().ItemCount() > 0x20) {
-                    return false;
+                for (unsigned int i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
+                    const AP4_HvccAtom::Sequence& seq = hvcc->GetSequences()[i];
+                    if (seq.m_NaluType != AP4_HEVC_NALU_TYPE_VPS_NUT &&
+                        seq.m_NaluType != AP4_HEVC_NALU_TYPE_SPS_NUT &&
+                        seq.m_NaluType != AP4_HEVC_NALU_TYPE_PPS_NUT) {
+                        int a = 1;
+                    }
                 }
+                for (unsigned int i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
+                    const AP4_HvccAtom::Sequence& seq = hvcc->GetSequences()[i];
+                    if (seq.m_NaluType == AP4_HEVC_NALU_TYPE_VPS_NUT) {
+                        for (unsigned int j = 0; j < seq.m_Nalus.ItemCount(); j++) {
+                            const AP4_DataBuffer& buffer = seq.m_Nalus[j];
 
-                for (uint32_t i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
-                    for (uint32_t i2 = 0; i2 < hvcc->GetSequences()[i2].m_Nalus.ItemCount(); i2++) {
-                        if (hvcc->GetSequences()[i2].m_Nalus.ItemCount() > 0x20) {
-                            return false;
+                            config.prefixNalUnits.insert(config.prefixNalUnits.end(), { 0x00, 0x00, 0x00, 0x01 });
+                            config.prefixNalUnits.insert(config.prefixNalUnits.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
                         }
-
-                        hevcConfigNalUnits.insert(hevcConfigNalUnits.end(), { 0x00, 0x00, 0x00, 0x01 });
-                        hevcConfigNalUnits.insert(hevcConfigNalUnits.end(), hvcc->GetSequences()[i].m_Nalus[i2].GetData(), hvcc->GetSequences()[i].m_Nalus[i2].GetData() + hvcc->GetSequences()[i].m_Nalus[i2].GetDataSize());
                     }
                 }
 
-                config.configNalUnits = hevcConfigNalUnits;
+                for (unsigned int i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
+                    const AP4_HvccAtom::Sequence& seq = hvcc->GetSequences()[i];
+                    if (seq.m_NaluType == AP4_HEVC_NALU_TYPE_SPS_NUT) {
+                        for (unsigned int j = 0; j < seq.m_Nalus.ItemCount(); j++) {
+                            const AP4_DataBuffer& buffer = seq.m_Nalus[j];
+
+                            config.prefixNalUnits.insert(config.prefixNalUnits.end(), { 0x00, 0x00, 0x00, 0x01 });
+                            config.prefixNalUnits.insert(config.prefixNalUnits.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
+                        }
+                    }
+                }
+
+                for (unsigned int i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
+                    const AP4_HvccAtom::Sequence& seq = hvcc->GetSequences()[i];
+                    if (seq.m_NaluType == AP4_HEVC_NALU_TYPE_PPS_NUT) {
+                        for (unsigned int j = 0; j < seq.m_Nalus.ItemCount(); j++) {
+                            const AP4_DataBuffer& buffer = seq.m_Nalus[j];
+
+                            config.prefixNalUnits.insert(config.prefixNalUnits.end(), { 0x00, 0x00, 0x00, 0x01 });
+                            config.prefixNalUnits.insert(config.prefixNalUnits.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
+                        }
+                    }
+                }
             }
 
         }
@@ -302,9 +328,10 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
                     return false;
                 }
 
-                aes128_ctr_decrypt(segment, it->second, vecIv[i], decrypted);
-
-
+                if (!aes128_ctr_decrypt(segment, it->second, vecIv[i], decrypted)) {
+                    stream->Release();
+                    return false;
+                }
 
                 decryptedMdat.insert(decryptedMdat.end(), decrypted.begin(), decrypted.end());
 
@@ -406,7 +433,7 @@ static void renameAudioSampleEntry(std::vector<uint8_t>& data) {
     }
 }
 
-bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& decryptedMP4, uint64_t& baseDts)
+bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& decryptedMP4)
 {
     clear();
 

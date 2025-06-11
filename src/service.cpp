@@ -102,7 +102,7 @@ bool Service::onALP(const ATSC3::LCT& lct, const std::vector<uint8_t>& payload)
 
         object.readyToBuffer = true;
     }
-    return false;
+    return true;
 }
 
 bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId)
@@ -115,68 +115,73 @@ bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId
         return true;
     }
 
-    auto stream = findStream(object.transportSessionId);
-    if (!stream) {
-        return false;
-    }
-
-    if (stream->get().hasInitToi) {
-        if (stream->get().initToi != transportObjectId && !stream->get().initMP4.size()) {
-            // waiting for init MP4 data
+    if (serviceCategory == ATSC3::ServiceCategory::EsgService) {
+        int a = 1;
+        auto ls = stsid.findLS(object.transportSessionId);
+        if (!ls) {
             return true;
         }
 
-        if (stream->get().initToi == transportObjectId) {
-            stream->get().initMP4 = object.buffer;
+        std::string xml(object.buffer.begin(), object.buffer.end());
 
-            MP4ConfigParser::MP4Config mp4Config;
-            MP4ConfigParser::parse(stream->get().initMP4, mp4Config);
-            stream->get().timescale = mp4Config.timescale;
-            stream->get().configNalUnits = mp4Config.configNalUnits;
-            return true;
+        if (ls->get().contentInfo == "") {
+
         }
     }
+    else if (serviceCategory == ATSC3::ServiceCategory::LinearAVService ||
+        serviceCategory == ATSC3::ServiceCategory::LinearAudioOnlyService) {
+        auto stream = findStream(object.transportSessionId);
+        if (!stream) {
+            return false;
+        }
 
-    std::vector<uint8_t> input;
-    std::vector<uint8_t> decryptedMP4;
-    std::vector<StreamPacket> packets;
-    uint64_t baseDts = 0;
+        if (stream->get().hasInitToi) {
+            if (stream->get().initToi != transportObjectId && !stream->get().initMP4.size()) {
+                // waiting for init MP4 data
+                return true;
+            }
 
-    input.insert(input.end(), stream->get().initMP4.begin(), stream->get().initMP4.end());
-    input.insert(input.end(), object.buffer.begin(), object.buffer.end());
+            if (stream->get().initToi == transportObjectId) {
+                stream->get().initMP4 = object.buffer;
+                MP4ConfigParser::parse(stream->get().initMP4, stream->get().mp4Config);
+                return true;
+            }
+        }
 
-    if (stream->get().contentType == ContentType::VIDEO ||
-        stream->get().contentType == ContentType::AUDIO) {
-        MP4Processor mp4Processor;
-        bool ret = mp4Processor.process(input, packets, decryptedMP4, baseDts);
-    }
-    else if (stream->get().contentType == ContentType::SUBTITLE) {
-        MP4Processor mp4Processor;
-        bool ret = mp4Processor.process(input, packets, decryptedMP4, baseDts);
-        // todo
-    }
+        std::vector<uint8_t> input;
+        std::vector<uint8_t> decryptedMP4;
+        std::vector<StreamPacket> packets;
 
-    if (demuxerHandler != nullptr && *demuxerHandler != nullptr) {
-        (*demuxerHandler)->onStreamData(*this, stream->get(), packets, decryptedMP4, baseDts, transportObjectId);
+        input.insert(input.end(), stream->get().initMP4.begin(), stream->get().initMP4.end());
+        input.insert(input.end(), object.buffer.begin(), object.buffer.end());
+
+        if (stream->get().contentType == ContentType::VIDEO ||
+            stream->get().contentType == ContentType::AUDIO ||
+            stream->get().contentType == ContentType::SUBTITLE) {
+            if (!mp4Processor.process(input, packets, decryptedMP4)) {
+                return false;
+            }
+
+            if (demuxerHandler != nullptr && *demuxerHandler != nullptr) {
+                (*demuxerHandler)->onStreamData(*this, stream->get(), packets, decryptedMP4);
+            }
+        }
     }
     return true;
 }
 
 bool Service::processSLS(const std::unordered_map<std::string, std::string>& files)
 {
-    if (isMediaService()) {
-        for (const auto& file : files) {
-            if (file.first == "stsid.xml") {
-                stsid.parse(file.second);
-            }
-            else if (file.first == "mpd.xml") {
-                mpd.parse(file.second);
-            }
+    for (const auto& file : files) {
+        if (file.first == "stsid.xml") {
+            stsid.parse(file.second);
         }
-
-        updateStreamMap();
+        else if (file.first == "mpd.xml") {
+            mpd.parse(file.second);
+        }
     }
 
+    updateStreamMap();
     return true;
 }
 

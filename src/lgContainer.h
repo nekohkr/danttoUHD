@@ -8,8 +8,8 @@ struct LgContainer {
     uint8_t plpId;
     uint16_t size;
     uint8_t cc;
-    uint8_t t_mode;
-    uint64_t time_value;
+    uint8_t tMode;
+    uint64_t timeValue;
 
     std::vector<uint8_t> payload;
 };

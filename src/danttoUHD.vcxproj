@@ -172,6 +172,7 @@
     <ClInclude Include="aacEncoder.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="decompress.h" />
+    <ClInclude Include="ip.h" />
     <ClInclude Include="mpd.h" />
     <ClInclude Include="routeObject.h" />
     <ClInclude Include="alp.h" />

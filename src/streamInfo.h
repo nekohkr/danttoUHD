@@ -4,14 +4,13 @@
 #include <string>
 #include "mpd.h"
 #include "aacEncoder.h"
+#include "mp4Processor.h"
 
 struct StreamInfo {
     uint32_t idx;
     uint32_t transportSessionId;
     std::string fileName;
     std::vector<uint8_t> initMP4;
-    std::vector<uint8_t> configNalUnits;
-    uint32_t timescale;
 
     uint32_t srcIpAddr;
     uint32_t dstIpAddr;
@@ -24,4 +23,5 @@ struct StreamInfo {
     bool hasInitToi{ false };
     uint32_t initToi{ 0 };
 
+    MP4ConfigParser::MP4Config mp4Config;
 };

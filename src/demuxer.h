@@ -28,6 +28,7 @@ private:
     bool processLLS(Common::ReadStream& stream);
     bool processALC(Common::ReadStream& stream, Service& service);
 
+    std::unordered_map<uint32_t, uint8_t> mapCC;
     std::vector<uint8_t> alpBuffer;
     bool alpAligned{ false };
     MP4Processor mp4Processor;

@@ -31,8 +31,8 @@ void LgContainerUnpacker::unpack(const UnpackCallback& callback) {
 
         container.size = stream.getBe16U();
         container.cc = stream.get8U();
-        container.t_mode = stream.get8U();
-        container.time_value = stream.getBe64U();
+        container.tMode = stream.get8U();
+        container.timeValue = stream.getBe64U();
 
         if (container.size + 0x23 > stream.leftBytes()) {
             break;

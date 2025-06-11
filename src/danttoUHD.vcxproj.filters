@@ -195,6 +195,9 @@
       <Filter>mpegh</Filter>
     </ClInclude>
     <ClInclude Include="config.h" />
+    <ClInclude Include="ip.h">
+      <Filter>common</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="pesPacket.h">

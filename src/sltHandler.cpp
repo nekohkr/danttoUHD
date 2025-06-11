@@ -1,18 +1,8 @@
 #include "sltHandler.h"
 #include "pugixml.hpp"
 #include "serviceManager.h"
-#include <WS2tcpip.h>
+#include "ip.h"
 #include <unordered_set>
-
-namespace {
-
-uint32_t ipToUint(const std::string& ip) {
-    uint32_t addr = 0;
-    inet_pton(AF_INET, ip.c_str(), &addr);
-    return addr;
-}
-
-}
 
 void SltHandler::process(std::string xml)
 {
@@ -51,9 +41,9 @@ void SltHandler::process(std::string xml)
             info.slsProtocol = bss.attribute("slsProtocol").as_uint();
             info.slsMajorProtocolVersion = bss.attribute("slsMajorProtocolVersion").as_uint();
             info.slsMinorProtocolVersion = bss.attribute("slsMinorProtocolVersion").as_uint();
-            info.slsDestinationIpAddress = ipToUint(bss.attribute("slsDestinationIpAddress").as_string());
+            info.slsDestinationIpAddress = Common::ipToUint(bss.attribute("slsDestinationIpAddress").as_string());
             info.slsDestinationUdpPort = bss.attribute("slsDestinationUdpPort").as_uint();
-            info.slsSourceIpAddress = ipToUint(bss.attribute("slsSourceIpAddress").as_string());
+            info.slsSourceIpAddress = Common::ipToUint(bss.attribute("slsSourceIpAddress").as_string());
         }
 
         auto it = std::find_if(

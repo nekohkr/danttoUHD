@@ -16,8 +16,9 @@ class AlcStream;
 class MP4ConfigParser {
 public:
     struct MP4Config {
-        std::vector<uint8_t> configNalUnits;
+        std::vector<uint8_t> prefixNalUnits;
         uint32_t timescale{ 0 };
+        uint8_t nalUnitLengthSize{ 0 };
     };
 
     static bool parse(const std::vector<uint8_t>& input, MP4Config& config);
@@ -26,7 +27,7 @@ public:
 
 class MP4Processor {
 public:
-    bool process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& outputMp4, uint64_t& baseDts_);
+    bool process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& outputMp4);
     
 
 private:
@@ -49,5 +50,4 @@ private:
     uint64_t baseDts{ 0 };
     uint32_t baseSampleDuration{ 0 };
     std::vector<StreamPacket> packets;
-
 };

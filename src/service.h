@@ -10,6 +10,7 @@
 #include "stsid.h"
 #include "mpd.h"
 #include "streamInfo.h"
+#include "mp4Processor.h"
 
 class Service {
 public:
@@ -23,9 +24,6 @@ public:
     bool onALP(const ATSC3::LCT& lct, const std::vector<uint8_t>& payload);
     bool processRouteObject(RouteObject& object, uint32_t transportObjectId);
     bool processSLS(const std::unordered_map<std::string, std::string>& files);
-
-    bool processSignalingSTSID(const std::string& xml);
-    bool processSignalingMPD(const std::string& xml);
     void updateStreamMap();
 
     std::optional<std::reference_wrapper<StreamInfo>> findStream(uint32_t transportSessionId);
@@ -63,4 +61,6 @@ public:
 private:
     std::unordered_map<uint32_t, RouteObject> routeObjects;
     DemuxerHandler** demuxerHandler;
+    MP4Processor mp4Processor;
+
 };
