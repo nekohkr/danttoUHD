@@ -63,4 +63,7 @@ private:
     DemuxerHandler** demuxerHandler;
     MP4Processor mp4Processor;
 
+    uint64_t baseDts{0};
+    uint64_t baseTs{0};
+
 };

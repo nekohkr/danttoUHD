@@ -1,6 +1,6 @@
 #include "aacEncoder.h"
 
-int AacEncoder::encode(const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
+int AacEncoder::encode(const std::vector<uint8_t>& input, std::vector<std::vector<uint8_t>>& output) {
 	wav = wav_read_open(input);
 	if (!inited) {
 		if (!wav) {
@@ -127,7 +127,7 @@ int AacEncoder::encode(const std::vector<uint8_t>& input, std::vector<uint8_t>& 
 		if (out_args.numOutBytes == 0)
 			continue;
 
-        output.insert(output.end(), outbuf, outbuf + out_args.numOutBytes);
+		output.emplace_back(outbuf, outbuf + out_args.numOutBytes);
 	}
 
 	free(input_buf);

@@ -1,8 +1,10 @@
 #include "service.h"
 #include <map>
+#include <chrono>
 #include "pugixml.hpp"
 #include "mp4Processor.h"
 #include "stsid.h"
+#include "rescale.h"
 
 namespace {
 
@@ -116,7 +118,6 @@ bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId
     }
 
     if (serviceCategory == ATSC3::ServiceCategory::EsgService) {
-        int a = 1;
         auto ls = stsid.findLS(object.transportSessionId);
         if (!ls) {
             return true;
@@ -162,8 +163,27 @@ bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId
                 return false;
             }
 
+            if (packets.size() == 0) {
+                return false;
+            }
+
+            if (baseDts == 0) {
+                AVRational r = { 1, static_cast<int>(stream->get().mp4Config.timescale) };
+                AVRational ts = { 1, 90000 };
+                baseDts = av_rescale_q(packets.front().dts, r, ts);
+
+                auto now = std::chrono::system_clock::now();
+                auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
+                baseTs = ms;
+            }
+
             if (demuxerHandler != nullptr && *demuxerHandler != nullptr) {
-                (*demuxerHandler)->onStreamData(*this, stream->get(), packets, decryptedMP4);
+                AVRational r = { 1, static_cast<int>(stream->get().mp4Config.timescale) };
+                AVRational ts = { 1, 90000 };
+                uint64_t rescaledDts = av_rescale_q(packets[0].dts, r, ts);
+
+                uint64_t baseDtsTimestamp = baseTs + (rescaledDts - baseDts) / 90;
+                (*demuxerHandler)->onStreamData(*this, stream->get(), packets, decryptedMP4, baseDtsTimestamp);
             }
         }
     }
