@@ -88,7 +88,7 @@ void hevcProcess(const MP4ConfigParser::MP4Config& mp4Config, const std::vector<
             return;
         }
 
-        if (!have_param_sets && !prefix_added && !have_access_unit_delimiter) {
+        if (!prefix_added) {
             output.insert(output.end(), mp4Config.prefixNalUnits.begin(), mp4Config.prefixNalUnits.end());
             prefix_added = true;
         }
@@ -99,11 +99,6 @@ void hevcProcess(const MP4ConfigParser::MP4Config& mp4Config, const std::vector<
 
         output.insert(output.end(), { 0, 0, 1 });
         output.insert(output.end(), buffer.begin(), buffer.end());
-
-        if (!have_param_sets && !prefix_added) {
-            output.insert(output.end(), mp4Config.prefixNalUnits.begin(), mp4Config.prefixNalUnits.end());
-            prefix_added = true;
-        }
     }
 }
 
@@ -219,8 +214,8 @@ void Muxer::onSlt(const ServiceManager& sm)
         std::vector<uint8_t> tsBuffer;
         ts::NIT nit(true, 0, true, sm.bsid);
         ts::NetworkNameDescriptor tsDescriptor;
-        tsDescriptor.name = ts::UString::FromUTF8("danttoUHD");
-        nit.descs.add(&tsDescriptor);
+        tsDescriptor.name = ts::UString::FromUTF8("danttoUHD (https://github.com/nekohkr/danttoUHD)");
+        nit.descs.add(duck, tsDescriptor);
 
         ts::BinaryTable table;
         nit.serialize(duck, table);
