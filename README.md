@@ -1,5 +1,5 @@
 # danttoUHD
-**danttoUHD**는 한국 지상파 UHD 방송(ATSC 3.0)를 MPEG-2 TS로 변환하는 툴입니다.
+**danttoUHD**는 한국 지상파 UHD 방송(ATSC 3.0)을 MPEG-2 TS로 변환하는 툴입니다.
 현재 ROUTE 방식만 지원하며, MMT 방식(KBS1 등)은 지원되지 않습니다.
 
 ## 주요 특징
