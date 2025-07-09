@@ -304,7 +304,7 @@ void Muxer::onPmt(const Service& service)
     outputCallback(tsBuffer.data(), tsBuffer.size(), 0);
 }
 
-void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& packets, const std::vector<uint8_t>& decryptedMP4, uint64_t baseDtsTimestamp)
+void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& packets, const std::vector<uint8_t>& decryptedMP4, int64_t baseDtsTimestamp)
 {
     std::vector<uint8_t> tsBuffer;
     uint16_t pid = calcPesPid(service, stream.idx);

@@ -180,9 +180,8 @@ bool Service::processRouteObject(RouteObject& object, uint32_t transportObjectId
             if (demuxerHandler != nullptr && *demuxerHandler != nullptr) {
                 AVRational r = { 1, static_cast<int>(stream->get().mp4Config.timescale) };
                 AVRational ts = { 1, 90000 };
-                uint64_t rescaledDts = av_rescale_q(packets[0].dts, r, ts);
-
-                uint64_t baseDtsTimestamp = baseTs + (rescaledDts - baseDts) / 90;
+                int64_t rescaledDts = av_rescale_q(packets[0].dts, r, ts);
+                int64_t baseDtsTimestamp = baseTs + (rescaledDts - baseDts) / 90;
                 (*demuxerHandler)->onStreamData(*this, stream->get(), packets, decryptedMP4, baseDtsTimestamp);
             }
         }

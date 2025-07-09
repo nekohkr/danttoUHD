@@ -19,7 +19,7 @@ public:
 private:
     virtual void onSlt(const ServiceManager& sm) override;
     virtual void onPmt(const Service& service) override;
-    virtual void onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& chunks, const std::vector<uint8_t>& decryptedMP4, uint64_t baseDtsTimestamp) override;
+    virtual void onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& chunks, const std::vector<uint8_t>& decryptedMP4, int64_t baseDtsTimestamp) override;
 
     std::unordered_map<uint16_t, uint8_t> mapCC;
     OutputCallback outputCallback;
