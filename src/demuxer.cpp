@@ -8,11 +8,14 @@
 #include "mp4Processor.h"
 #include "pugixml.hpp"
 #include "atsc3.h"
-#include "bbPacket.h"
-#include "alp.h"
-#include "lct.h"
-#include "lls.h"
+#include "atsc3BasebandPacket.h"
+#include "atsc3Table.h"
 #include "service.h"
+#include "mmt.h"
+#include <unordered_set>
+#include "rescale.h"
+
+namespace atsc3 {
 
 DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
     const auto callback = [this](const LgContainer& lgContainer) {
@@ -37,21 +40,26 @@ DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
 
         Common::ReadStream s(lgContainer.payload);
 
-        ATSC3::BasebandPacket basebandPacket;
-        if (!basebandPacket.unpack(s)) {
+        atsc3::Atsc3BasebandPacket bbPacket;
+        if (!bbPacket.unpack(s)) {
             return;
         }
 
         uint32_t alpOffset = 0;
         if (!alpAligned) {
-            alpOffset = basebandPacket.baseField.pointer;
-            if (basebandPacket.baseField.pointer == 8191) {
+            alpOffset = bbPacket.baseField.pointer;
+            if (bbPacket.baseField.pointer == 8191) {
                 return;
             }
             alpAligned = true;
         }
 
-        Common::ReadStream bbPayloadStream(basebandPacket.payload);
+        Common::ReadStream bbPayloadStream(bbPacket.payload);
+        if (bbPayloadStream.leftBytes() < alpOffset) {
+            alpAligned = false;
+            alpBuffer.clear();
+            return;
+        }
         bbPayloadStream.skip(alpOffset);
 
         size_t oldSize = alpBuffer.size();
@@ -60,15 +68,17 @@ DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
 
         while (alpBuffer.size() > 2) {
             Common::ReadStream alpStream(alpBuffer);
-            ATSC3::ALP alp;
-            ATSC3::UnpackResult result = alp.unpack(alpStream);
+            atsc3::Atsc3Alp alp;
+            atsc3::UnpackResult result = alp.unpack(alpStream);
 
-            if (result == ATSC3::UnpackResult::NotEnoughData) {
+            if (result == atsc3::UnpackResult::NotEnoughData) {
                 return;
             }
 
-            ATSC3::AlpPacketType packetType = static_cast<ATSC3::AlpPacketType>(alp.packetType);
-            if (packetType == ATSC3::AlpPacketType::IPv4) {
+            atsc3::Atsc3AlpPacketType packetType = static_cast<atsc3::Atsc3AlpPacketType>(alp.packetType);
+            if (packetType == atsc3::Atsc3AlpPacketType::IPv4) {
+                pcapWriter.writePacket(alp.payload);
+
                 Common::ReadStream payloadStream(alp.payload);
                 if (!processIpUdp(payloadStream)) {
                     alpAligned = false;
@@ -87,13 +97,12 @@ DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
     return DemuxStatus::Ok;
 }
 
-void Demuxer::setHandler(DemuxerHandler* handler)
-{
+void Demuxer::setHandler(DemuxerHandler* handler) {
     this->handler = handler;
 }
 
-bool Demuxer::processIpUdp(Common::ReadStream& stream)
-{
+
+bool Demuxer::processIpUdp(Common::ReadStream& stream) {
     IPv4Header ipv4;
     if (!ipv4.unpack(stream)) {
         return false;
@@ -110,31 +119,28 @@ bool Demuxer::processIpUdp(Common::ReadStream& stream)
     }
 
     if (ipv4.dstIpAddr == inet_addr("224.0.23.60") && udp.dstPort == 4937) {
-        processLLS(stream);
+        processLls(stream);
         return true;
     }
 
     auto service = serviceManager.findServiceByIp(ipv4.dstIpAddr, udp.dstPort);
-    
     if (service) {
-        processALC(stream, *service);
+        return service->processPacket(stream);
     }
 
     return true;
 }
 
-bool Demuxer::processLLS(Common::ReadStream& stream)
-{
-    ATSC3::LLS lls;
+bool Demuxer::processLls(Common::ReadStream& stream) {
+    atsc3::Atsc3LowLevelSignaling lls;
     lls.unpack(stream);
 
     switch (lls.tableId) {
-    case 0x01: // SLT
+    case atsc3::Atsc3ServiceListTable::kTableId:
     {
-        sltHandler.process(lls.payload);
-        if (handler) {
-            handler->onSlt(serviceManager);
-        }
+        atsc3::Atsc3ServiceListTable slt;
+        slt.unpack(lls.payload);
+        processSlt(slt);
         break;
     }
     }
@@ -142,20 +148,59 @@ bool Demuxer::processLLS(Common::ReadStream& stream)
     return true;
 }
 
-bool Demuxer::processALC(Common::ReadStream& stream, Service& service)
-{
-    ATSC3::LCT lct;
-    if (!lct.unpack(stream)) {
-        return false;
+bool Demuxer::processSlt(const atsc3::Atsc3ServiceListTable& slt) {
+    serviceManager.bsid = slt.bsid;
+
+    std::unordered_set<uint32_t> serviceIds;
+    for (const auto& service : slt.services) {
+        serviceIds.insert(service.serviceId);
     }
 
-    uint16_t sbn = stream.getBe16U();
-    uint16_t esid = stream.getBe16U();
+    for (auto it = serviceManager.services.begin(); it != serviceManager.services.end(); ) {
+        if (serviceIds.find(it->get()->serviceId) == serviceIds.end()) {
+            it = serviceManager.services.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
 
-    size_t size = stream.leftBytes();
-    std::vector<uint8_t> buffer(size);
-    stream.read(buffer.data(), size);
+    for (const auto& service : slt.services) {
+        auto it = std::find_if(
+            serviceManager.services.begin(),
+            serviceManager.services.end(),
+            [&](auto& s) { return s->serviceId == service.serviceId; }
+        );
+        if (it != serviceManager.services.end()) {
+            (*it)->serviceCategory = service.serviceCategory;
+            (*it)->shortServiceName = service.shortServiceName;
+            (*it)->slsProtocol = service.slsProtocol;
+            (*it)->slsMajorProtocolVersion = service.slsMajorProtocolVersion;
+            (*it)->slsMinorProtocolVersion = service.slsMinorProtocolVersion;
+            (*it)->slsDestinationIpAddress = service.slsDestinationIpAddress;
+            (*it)->slsDestinationUdpPort = service.slsDestinationUdpPort;
+            (*it)->slsSourceIpAddress = service.slsSourceIpAddress;
+        }
+        else {
+            std::shared_ptr<Service> newService = std::make_shared<Service>(handler);
+            newService->serviceId = service.serviceId;
+            newService->serviceCategory = service.serviceCategory;
+            newService->shortServiceName = service.shortServiceName;
+            newService->slsProtocol = service.slsProtocol;
+            newService->slsMajorProtocolVersion = service.slsMajorProtocolVersion;
+            newService->slsMinorProtocolVersion = service.slsMinorProtocolVersion;
+            newService->slsDestinationIpAddress = service.slsDestinationIpAddress;
+            newService->slsDestinationUdpPort = service.slsDestinationUdpPort;
+            newService->slsSourceIpAddress = service.slsSourceIpAddress;
+            serviceManager.AddService(newService);
+        }
+    }
 
-    service.onALP(lct, buffer);
+    if (handler) {
+        handler->onSlt(serviceManager);
+    }
+
     return true;
+}
+
 }

@@ -2,9 +2,9 @@
 #include <cstdint>
 #include "stream.h"
 
-namespace ATSC3 {
+namespace atsc3 {
 
-class LCT {
+class RouteLayeredCodingTransport {
 public:
     bool unpack(Common::ReadStream& stream);
 
@@ -18,10 +18,8 @@ public:
     uint8_t reserved;
     bool closeSessionFlag;
     bool closeObjectFlag;
-
     uint8_t headerLength;
     uint8_t codepoint;
-
     uint32_t congestionControlInformation;
     uint32_t transportSessionId;
     uint32_t transportObjectId;

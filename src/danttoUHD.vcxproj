@@ -110,7 +110,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;_DEBUG;_CONSOLE;CPPHTTPLIB_OPENSSL_SUPPORT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;_WINSOCK_DEPRECATED_NO_WARNINGS;_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR;_DEBUG;_CONSOLE;CPPHTTPLIB_OPENSSL_SUPPORT;MPEGHDEC_STATIC=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -142,44 +142,54 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="aacEncoder.cpp" />
-    <ClCompile Include="alp.cpp" />
+    <ClCompile Include="atsc3.cpp" />
+    <ClCompile Include="atsc3Table.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="decompress.cpp" />
-    <ClCompile Include="lct.cpp" />
-    <ClCompile Include="lls.cpp" />
-    <ClCompile Include="bbPacket.cpp" />
+    <ClCompile Include="atsc3BasebandPacket.cpp" />
     <ClCompile Include="danttoUHD.cpp" />
     <ClCompile Include="lgContainer.cpp" />
+    <ClCompile Include="mmt.cpp" />
+    <ClCompile Include="mmtDemuxer.cpp" />
+    <ClCompile Include="mmtDescriptor.cpp" />
+    <ClCompile Include="mmtSignalingMessage.cpp" />
+    <ClCompile Include="mmtTable.cpp" />
     <ClCompile Include="mp4Processor.cpp" />
     <ClCompile Include="demuxer.cpp" />
     <ClCompile Include="ipv4.cpp" />
-    <ClCompile Include="mpd.cpp" />
-    <ClCompile Include="mpeghDecoder.cpp" />
     <ClCompile Include="muxer.cpp" />
     <ClCompile Include="pesPacket.cpp" />
     <ClCompile Include="pugixml.cpp" />
+    <ClCompile Include="route.cpp" />
+    <ClCompile Include="routeDemuxer.cpp" />
+    <ClCompile Include="routeSignaling.cpp" />
     <ClCompile Include="service.cpp" />
     <ClCompile Include="serviceManager.cpp" />
-    <ClCompile Include="sltHandler.cpp" />
     <ClCompile Include="stream.cpp" />
     <ClCompile Include="rescale.cpp" />
-    <ClCompile Include="stsid.cpp" />
     <ClCompile Include="udp.cpp" />
     <ClCompile Include="wavreader.cpp" />
     <ClCompile Include="wav_file2.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aacEncoder.h" />
+    <ClInclude Include="atsc3Table.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="decompress.h" />
     <ClInclude Include="ip.h" />
-    <ClInclude Include="mpd.h" />
-    <ClInclude Include="routeObject.h" />
-    <ClInclude Include="alp.h" />
+    <ClInclude Include="mediaStream.h" />
+    <ClInclude Include="mediaTransportDemuxer.h" />
+    <ClInclude Include="mmt.h" />
+    <ClInclude Include="mmtDemuxer.h" />
+    <ClInclude Include="mmtAssembler.h" />
+    <ClInclude Include="mmtDescriptor.h" />
+    <ClInclude Include="mmtSignalingMessage.h" />
+    <ClInclude Include="mmtTable.h" />
+    <ClInclude Include="pcapWriter.h" />
+    <ClInclude Include="route.h" />
+    <ClInclude Include="routeDemuxer.h" />
     <ClInclude Include="atsc3.h" />
-    <ClInclude Include="lct.h" />
-    <ClInclude Include="lls.h" />
-    <ClInclude Include="bbPacket.h" />
+    <ClInclude Include="atsc3BasebandPacket.h" />
     <ClInclude Include="demuxerHandler.h" />
     <ClInclude Include="httplib.h" />
     <ClInclude Include="lgContainer.h" />
@@ -190,13 +200,11 @@
     <ClInclude Include="muxer.h" />
     <ClInclude Include="pugiconfig.hpp" />
     <ClInclude Include="pugixml.hpp" />
+    <ClInclude Include="routeSignaling.h" />
     <ClInclude Include="service.h" />
     <ClInclude Include="serviceManager.h" />
-    <ClInclude Include="sltHandler.h" />
     <ClInclude Include="stream.h" />
-    <ClInclude Include="streamInfo.h" />
     <ClInclude Include="streamPacket.h" />
-    <ClInclude Include="stsid.h" />
     <ClInclude Include="swap.h" />
     <ClInclude Include="rescale.h" />
     <ClInclude Include="udp.h" />

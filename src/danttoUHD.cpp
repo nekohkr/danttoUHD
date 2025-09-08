@@ -12,7 +12,7 @@
 #include "httplib.h"
 #include "config.h"
 
-Demuxer demuxer;
+atsc3::Demuxer demuxer;
 Muxer muxer;
 
 int main(int argc, char* argv[]) {
@@ -67,7 +67,6 @@ int main(int argc, char* argv[]) {
 
     uint64_t lastTime = 0;
 
-    // for sorting output by DTS
     std::map<uint64_t, std::vector<uint8_t>> tsBuffer;
     muxer.setOutputCallback([&](const uint8_t* data, size_t size, uint64_t time) {
         if (time == 0) {

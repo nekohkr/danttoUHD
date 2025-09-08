@@ -1,8 +1,8 @@
-#include "bbPacket.h"
+#include "atsc3BasebandPacket.h"
 
-namespace ATSC3 {
+namespace atsc3 {
 
-bool BasebandPacket::unpack(Common::ReadStream& s) {
+bool Atsc3BasebandPacket::unpack(Common::ReadStream& s) {
     if (!baseField.unpack(s)) {
         return false;
     }
@@ -27,7 +27,7 @@ bool BasebandPacket::unpack(Common::ReadStream& s) {
     return true;
 }
 
-bool BasebandPacket::BaseField::unpack(Common::ReadStream& s) {
+bool Atsc3BasebandPacket::BaseField::unpack(Common::ReadStream& s) {
     if (s.leftBytes() < 2) {
         return false;
     }
@@ -45,7 +45,7 @@ bool BasebandPacket::BaseField::unpack(Common::ReadStream& s) {
     return true;
 }
 
-bool BasebandPacket::OptionalField::unpack(Common::ReadStream& s, const BaseField& baseField)
+bool Atsc3BasebandPacket::OptionalField::unpack(Common::ReadStream& s, const BaseField& baseField)
 {
     if (baseField.mode == 0) {
         return true;

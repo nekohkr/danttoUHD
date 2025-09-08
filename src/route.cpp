@@ -1,10 +1,8 @@
-#include "lct.h"
-#include "stream.h"
+#include "route.h"
 
-namespace ATSC3 {
+namespace atsc3 {
 
-bool LCT::unpack(Common::ReadStream& stream)
-{
+bool RouteLayeredCodingTransport::unpack(Common::ReadStream& stream) {
     uint8_t uint8 = stream.get8U();
     version = (uint8 & 0b11110000) >> 4;
     congestionControlFlag = (uint8 & 0b00001100) >> 2;

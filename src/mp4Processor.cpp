@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <regex>
 #include <tuple>
-#include "routeObject.h"
 #include "httplib.h"
 #include "config.h"
 
@@ -67,7 +66,7 @@ bool aes128_ctr_decrypt(const std::vector<uint8_t>& ciphertext,
     plaintext.resize(ciphertext.size() + EVP_CIPHER_block_size(EVP_aes_128_ctr()));
 
     int out_len1 = 0;
-    if (1 != EVP_DecryptUpdate(ctx, plaintext.data(), &out_len1, ciphertext.data(), ciphertext.size())) {
+    if (1 != EVP_DecryptUpdate(ctx, plaintext.data(), &out_len1, ciphertext.data(), static_cast<int>(ciphertext.size()))) {
         EVP_CIPHER_CTX_free(ctx);
         return false;
     }
@@ -85,8 +84,9 @@ bool aes128_ctr_decrypt(const std::vector<uint8_t>& ciphertext,
 
 }
 
-bool MP4ConfigParser::parse(const std::vector<uint8_t>& input, MP4Config& config)
-{
+namespace atsc3 {
+
+bool MP4ConfigParser::parse(const std::vector<uint8_t>& input, struct MP4CodecConfig& config) {
     AP4_DataBuffer buffer;
     buffer.SetData(static_cast<const AP4_UI08*>(input.data()), static_cast<AP4_Size>(input.size()));
 
@@ -185,13 +185,11 @@ void MP4Processor::ProcessTfdt(AP4_TfdtAtom* tfdt) {
     baseDts = tfdt->GetBaseMediaDecodeTime();
 }
 
-bool MP4Processor::ProcessTfhd(AP4_TfhdAtom* tfhd) {
+void MP4Processor::ProcessTfhd(AP4_TfhdAtom* tfhd) {
     baseSampleDuration = tfhd->GetDefaultSampleDuration();
-    return false;
 }
 
-void MP4Processor::clear()
-{
+void MP4Processor::clear() {
     vecIv.clear();
     vecSampleSize.clear();
     vecSampleCompositionTimeOffset.clear();
@@ -380,34 +378,32 @@ bool MP4Processor::ProcessMoof(AP4_ContainerAtom* moof) {
             AP4_ContainerAtom* traf = AP4_DYNAMIC_CAST(AP4_ContainerAtom, atom);
             if (!traf) continue;
 
-            bool trunProcessed = false;
-            bool sencProcessed = false;
-            bool tfdtProcessed = false;
-            bool tfhdProcessed = false;
             AP4_List<AP4_Atom>::Item* traf_item = traf->GetChildren().FirstItem();
             while (traf_item) {
                 AP4_Atom* traf_atom = traf_item->GetData();
-                if (traf_atom->GetType() == AP4_ATOM_TYPE_TRUN && !trunProcessed) {
-                    AP4_TrunAtom* trun = AP4_DYNAMIC_CAST(AP4_TrunAtom, traf_atom);
-                    ProcessTrun(trun);
-                    trunProcessed = true;
-                }
-                else if (traf_atom->GetType() == AP4_ATOM_TYPE_SENC && !sencProcessed) {
-                    ProcessSenc(traf_atom);
-                    sencProcessed = true;
-                }
-                else if (traf_atom->GetType() == AP4_ATOM_TYPE_TFDT && !tfdtProcessed) {
-                    AP4_TfdtAtom* tfdt = AP4_DYNAMIC_CAST(AP4_TfdtAtom, traf_atom);
-                    ProcessTfdt(tfdt);
-                    tfdtProcessed = true;
-                }
-                else if (traf_atom->GetType() == AP4_ATOM_TYPE_TFHD && !tfhdProcessed) {
+                if (traf_atom->GetType() == AP4_ATOM_TYPE_TFHD) {
                     AP4_TfhdAtom* tfhd = AP4_DYNAMIC_CAST(AP4_TfhdAtom, traf_atom);
+                    if (tfhd->GetTrackId() != 1) {
+                        traf_item = traf_item->GetNext();
+                        continue;
+                    }
                     ProcessTfhd(tfhd);
-                    tfhdProcessed = true;
                 }
 
-                
+
+                if (traf_atom->GetType() == AP4_ATOM_TYPE_TRUN) {
+                    AP4_TrunAtom* trun = AP4_DYNAMIC_CAST(AP4_TrunAtom, traf_atom);
+                    ProcessTrun(trun);
+                }
+                else if (traf_atom->GetType() == AP4_ATOM_TYPE_SENC) {
+                    ProcessSenc(traf_atom);
+                }
+                else if (traf_atom->GetType() == AP4_ATOM_TYPE_TFDT) {
+                    AP4_TfdtAtom* tfdt = AP4_DYNAMIC_CAST(AP4_TfdtAtom, traf_atom);
+                    ProcessTfdt(tfdt);
+                }
+
+
                 traf_item = traf_item->GetNext();
             }
         }
@@ -423,8 +419,8 @@ bool MP4Processor::ProcessMoof(AP4_ContainerAtom* moof) {
 }
 
 static void renameAudioSampleEntry(std::vector<uint8_t>& data) {
-    const std::vector<uint8_t> target = { 'e', 'n', 'c', 'a', 0x00, 0x00, 0x00, 0x00};
-    const std::vector<uint8_t> replacement = { 'm', 'h', 'm', '1', 0x00, 0x00, 0x00, 0x00};
+    const std::vector<uint8_t> target = { 'e', 'n', 'c', 'a', 0x00, 0x00, 0x00, 0x00 };
+    const std::vector<uint8_t> replacement = { 'm', 'h', 'm', '1', 0x00, 0x00, 0x00, 0x00 };
 
     auto it = std::search(data.begin(), data.end(), target.begin(), target.end());
     while (it != data.end()) {
@@ -433,8 +429,7 @@ static void renameAudioSampleEntry(std::vector<uint8_t>& data) {
     }
 }
 
-bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& decryptedMP4)
-{
+bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& decryptedMP4) {
     clear();
 
     AP4_DataBuffer buffer;
@@ -478,4 +473,6 @@ bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamP
     delete file;
     stream->Release();
     return true;
+}
+
 }

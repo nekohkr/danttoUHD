@@ -23,5 +23,4 @@ public:
     uint32_t srcIpAddr{};
     uint32_t dstIpAddr{};
 
-
 };

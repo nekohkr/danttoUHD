@@ -1,13 +1,32 @@
-#include "alp.h"
+#include "atsc3.h"
+#include "decompress.h"
 
-namespace ATSC3 {
+namespace atsc3 {
 
-UnpackResult ALP::unpack(Common::ReadStream& s)
-{
+bool Atsc3LowLevelSignaling::unpack(Common::ReadStream& stream) {
+    tableId = stream.get8U();
+    groupId = stream.get8U();
+    groupCount = stream.get8U();
+    tableVersion = stream.get8U();
+
+    std::vector<uint8_t> compressed;
+    compressed.resize(stream.leftBytes());
+    stream.read(compressed.data(), compressed.size());
+
+    auto decompressed = gzipInflate(compressed);
+    if (!decompressed) {
+        return false;
+    }
+
+    payload = decompressed.value();
+    return true;
+}
+
+
+UnpackResult Atsc3Alp::unpack(Common::ReadStream& s) {
     uint16_t uint16 = s.getBe16U();
     packetType = (uint16 & 0b1110000000000000) >> 13;
     payloadConfiguration = static_cast<bool>((uint16 & 0b0001000000000000) >> 12);
-
 
     if (payloadConfiguration == 0) {
         headerMode = (uint16 & 0b0000100000000000) >> 11;

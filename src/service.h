@@ -3,35 +3,32 @@
 #include <string>
 #include "stream.h"
 #include "atsc3.h"
-#include "lct.h"
-#include "routeObject.h"
 #include <unordered_map>
 #include "demuxerHandler.h"
-#include "stsid.h"
-#include "mpd.h"
-#include "streamInfo.h"
 #include "mp4Processor.h"
+#include "mmtDemuxer.h"
+#include "routeDemuxer.h"
+#include "routeSignaling.h"
+#include "mediaStream.h"
 
+namespace atsc3 {
+
+class Demuxer;
 class Service {
 public:
-    Service(DemuxerHandler** demuxerHandler) : demuxerHandler(demuxerHandler) {
-    }
+    Service(DemuxerHandler* handler);
 
     uint16_t getPmtPid() const {
         return 0x100 + idx * 0x10;
     }
 
-    bool onALP(const ATSC3::LCT& lct, const std::vector<uint8_t>& payload);
-    bool processRouteObject(RouteObject& object, uint32_t transportObjectId);
-    bool processSLS(const std::unordered_map<std::string, std::string>& files);
-    void updateStreamMap();
-
-    std::optional<std::reference_wrapper<StreamInfo>> findStream(uint32_t transportSessionId);
+    bool processPacket(Common::ReadStream& stream);
+    std::optional<std::reference_wrapper<MediaStream>> findStream(uint32_t transportSessionId);
 
 
     bool isMediaService() const {
-        return serviceCategory == ATSC3::ServiceCategory::LinearAVService ||
-            serviceCategory == ATSC3::ServiceCategory::LinearAudioOnlyService;
+        return serviceCategory == atsc3::Atsc3ServiceCategory::LinearAVService ||
+            serviceCategory == atsc3::Atsc3ServiceCategory::LinearAudioOnlyService;
     }
 
     struct File {
@@ -39,12 +36,11 @@ public:
         std::string fileName;
     };
 
-
-    std::unordered_map<uint32_t, struct StreamInfo> mapStream;
+    std::unordered_map<uint32_t, MediaStream> mapStream;
 
     uint32_t idx;
     uint32_t serviceId;
-    ATSC3::ServiceCategory serviceCategory;
+    atsc3::Atsc3ServiceCategory serviceCategory;
     std::string shortServiceName;
 
     uint32_t slsProtocol;
@@ -55,15 +51,16 @@ public:
     uint16_t slsDestinationUdpPort;
     uint32_t slsSourceIpAddress;
 
-    STSID stsid;
-    MPD mpd;
 
 private:
-    std::unordered_map<uint32_t, RouteObject> routeObjects;
-    DemuxerHandler** demuxerHandler;
-    MP4Processor mp4Processor;
+    bool onStreamTable(const std::vector<std::reference_wrapper<MediaStream>>& streams);
+    bool onMediaData(atsc3::MediaStream& stream, const std::vector<uint8_t>& mfu, const std::vector<uint8_t>& metadata, uint64_t basePts);
 
-    int64_t baseDts{0};
-    int64_t baseTs{0};
+    DemuxerHandler* handler{ nullptr };
+    MP4Processor mp4Processor;
+    atsc3::MmtDemuxer mmtDemuxer;
+    atsc3::RouteDemuxer routeDemuxer;
 
 };
+
+}

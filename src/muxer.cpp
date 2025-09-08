@@ -14,7 +14,7 @@
 
 namespace {
 
-void hevcProcess(const MP4ConfigParser::MP4Config& mp4Config, const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
+void hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
     bool have_access_unit_delimiter = false;
     bool have_param_sets = false;
 
@@ -106,38 +106,34 @@ uint64_t convertDTS(uint64_t dts_mp4, uint32_t timescale_mp4, uint32_t timescale
     return static_cast<uint64_t>(static_cast<double>(dts_mp4) / timescale_mp4 * timescale_ts);
 }
 
-uint16_t calcPesPid(const Service& service, uint32_t streamIdx) {
+uint16_t calcPesPid(const atsc3::Service& service, uint32_t streamIdx) {
     return service.getPmtPid() + 1 + streamIdx;
 }
 
 }
 
-namespace StreamType {
+enum class Mpeg2StreamType : uint8_t {
+    VIDEO_MPEG1 = 0x01,
+    VIDEO_MPEG2 = 0x02,
+    AUDIO_MPEG1 = 0x03,
+    AUDIO_MPEG2 = 0x04,
+    PRIVATE_SECTION = 0x05,
+    PRIVATE_DATA = 0x06,
+    ISO_IEC_13818_6_TYPE_D = 0x0d,
+    AUDIO_AAC = 0x0f,
+    AUDIO_AAC_LATM = 0x11,
+    VIDEO_MPEG4 = 0x10,
+    METADATA = 0x15,
+    VIDEO_H264 = 0x1b,
+    VIDEO_HEVC = 0x24,
+    VIDEO_AC3 = 0x81,
+};
 
-    constexpr uint8_t VIDEO_MPEG1 = 0x01;
-    constexpr uint8_t VIDEO_MPEG2 = 0x02;
-    constexpr uint8_t AUDIO_MPEG1 = 0x03;
-    constexpr uint8_t AUDIO_MPEG2 = 0x04;
-    constexpr uint8_t PRIVATE_SECTION = 0x05;
-    constexpr uint8_t PRIVATE_DATA = 0x06;
-    constexpr uint8_t ISO_IEC_13818_6_TYPE_D = 0x0d;
-    constexpr uint8_t AUDIO_AAC = 0x0f;
-    constexpr uint8_t AUDIO_AAC_LATM = 0x11;
-    constexpr uint8_t VIDEO_MPEG4 = 0x10;
-    constexpr uint8_t METADATA = 0x15;
-    constexpr uint8_t VIDEO_H264 = 0x1b;
-    constexpr uint8_t VIDEO_HEVC = 0x24;
-    constexpr uint8_t VIDEO_AC3 = 0x81;
-
-}
-
-void Muxer::setOutputCallback(OutputCallback cb)
-{
+void Muxer::setOutputCallback(OutputCallback cb) {
     outputCallback = std::move(cb);
 }
 
-void Muxer::onSlt(const ServiceManager& sm)
-{
+void Muxer::onSlt(const atsc3::ServiceManager& sm) {
     if (!ready) {
         return;
     }
@@ -146,10 +142,10 @@ void Muxer::onSlt(const ServiceManager& sm)
         std::vector<uint8_t> tsBuffer;
         ts::PAT pat(0, true, sm.bsid, sm.bsid);
         for (const auto& service : sm.services) {
-            if (!service.isMediaService()) {
+            if (!service->isMediaService()) {
                 continue;
             }
-            pat.pmts[service.serviceId] = service.getPmtPid();
+            pat.pmts[service->serviceId] = service->getPmtPid();
         }
 
         ts::BinaryTable table;
@@ -177,16 +173,16 @@ void Muxer::onSlt(const ServiceManager& sm)
         std::vector<uint8_t> tsBuffer;
         ts::SDT sdt(true, 0, true, sm.bsid, sm.bsid);
         for (const auto& service : sm.services) {
-            if (!service.isMediaService()) {
+            if (!service->isMediaService()) {
                 continue;
             }
 
             ts::SDT::ServiceEntry tsService(&sdt);
             ts::ServiceDescriptor tsDescriptor;
-            tsDescriptor.service_name = ts::UString::FromUTF8(service.shortServiceName);
+            tsDescriptor.service_name = ts::UString::FromUTF8(service->shortServiceName);
             tsDescriptor.service_type = 1;
             tsService.descs.add(duck, tsDescriptor);
-            sdt.services[service.serviceId] = tsService;
+            sdt.services[service->serviceId] = tsService;
         }
 
         ts::BinaryTable table;
@@ -237,11 +233,9 @@ void Muxer::onSlt(const ServiceManager& sm)
         }
         outputCallback(tsBuffer.data(), tsBuffer.size(), 0);
     }
-
 }
 
-void Muxer::onPmt(const Service& service)
-{
+void Muxer::onPmt(const atsc3::Service& service, std::vector<std::reference_wrapper<atsc3::MediaStream>> streams) {
     if (!ready) {
         return;
     }
@@ -251,9 +245,9 @@ void Muxer::onPmt(const Service& service)
     }
 
     uint16_t pcrPid = 0x1fff;
-    for (const auto& stream : service.mapStream) {
-        if (stream.second.contentType == ContentType::VIDEO) {
-            pcrPid = calcPesPid(service, stream.second.idx);
+    for (const auto& stream : streams) {
+        if (stream.get().getStreamType() == atsc3::StreamType::VIDEO) {
+            pcrPid = calcPesPid(service, stream.get().idx);
             break;
         }
     }
@@ -262,22 +256,22 @@ void Muxer::onPmt(const Service& service)
     ts::PMT tsPmt(0, true, pcrPid);
     tsPmt.service_id = service.serviceId;
 
-    for (const auto& stream : service.mapStream) {
-        if (stream.second.contentType == ContentType::VIDEO) {
-            ts::PMT::Stream tsStream(&tsPmt, StreamType::VIDEO_HEVC);
+    for (const auto& stream : streams) {
+        if (stream.get().getStreamType() == atsc3::StreamType::VIDEO) {
+            ts::PMT::Stream tsStream(&tsPmt, static_cast<uint8_t>(Mpeg2StreamType::VIDEO_HEVC));
             ts::RegistrationDescriptor descriptor;
             descriptor.format_identifier = 0x48455643;
             tsStream.descs.add(duck, descriptor);
 
-            tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
+            tsPmt.streams[calcPesPid(service, stream.get().idx)] = tsStream;
         }
-        if (stream.second.contentType == ContentType::AUDIO) {
-            ts::PMT::Stream tsStream(&tsPmt, StreamType::AUDIO_AAC);
-            tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
+        if (stream.get().getStreamType() == atsc3::StreamType::AUDIO) {
+            ts::PMT::Stream tsStream(&tsPmt, static_cast<uint8_t>(Mpeg2StreamType::AUDIO_AAC));
+            tsPmt.streams[calcPesPid(service, stream.get().idx)] = tsStream;
         }
-        if (stream.second.contentType == ContentType::SUBTITLE) {
-            ts::PMT::Stream tsStream(&tsPmt, StreamType::ISO_IEC_13818_6_TYPE_D);
-            tsPmt.streams[calcPesPid(service, stream.second.idx)] = tsStream;
+        if (stream.get().getStreamType() == atsc3::StreamType::SUBTITLE) {
+            ts::PMT::Stream tsStream(&tsPmt, static_cast<uint8_t>(Mpeg2StreamType::ISO_IEC_13818_6_TYPE_D));
+            tsPmt.streams[calcPesPid(service, stream.get().idx)] = tsStream;
         }
     }
 
@@ -304,24 +298,23 @@ void Muxer::onPmt(const Service& service)
     outputCallback(tsBuffer.data(), tsBuffer.size(), 0);
 }
 
-void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const std::vector<StreamPacket>& packets, const std::vector<uint8_t>& decryptedMP4, int64_t baseDtsTimestamp)
-{
+void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream& stream, const std::vector<StreamPacket>& packets,
+    const std::vector<uint8_t>& decryptedMP4) {
     std::vector<uint8_t> tsBuffer;
     uint16_t pid = calcPesPid(service, stream.idx);
-    AVRational r = { 1, static_cast<int>(stream.mp4Config.timescale) };
+    AVRational r = { 1, static_cast<int>(stream.mp4CodecConfig.timescale) };
     AVRational ts = { 1, 90000 };
     uint64_t baseDts = av_rescale_q(packets[0].dts, r, ts);
 
-    if (stream.contentType == ContentType::VIDEO) {
+    if (stream.getStreamType() == atsc3::StreamType::VIDEO) {
         for (const auto& packet : packets) {
             uint64_t dts = av_rescale_q(packet.dts, r, ts);
             uint64_t pts = av_rescale_q(packet.pts, r, ts);
-            uint64_t dtsTimestamp = baseDtsTimestamp + (dts - baseDts) / 90;
 
             std::vector<uint8_t> pesOutput;
             std::vector<uint8_t> processed;
 
-            hevcProcess(stream.mp4Config, packet.data, processed);
+            hevcProcess(stream.mp4CodecConfig, packet.data, processed);
 
             PESPacket pes;
             pes.setPts(pts);
@@ -350,17 +343,34 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
                 ++i;
             }
 
-            outputCallback(tsBuffer.data(), tsBuffer.size(), dtsTimestamp);
+            outputCallback(tsBuffer.data(), tsBuffer.size(), 0);
             tsBuffer.clear();
             ready = true;
         }
     }
-    else if (stream.contentType == ContentType::AUDIO) {
+    else if (stream.getStreamType() == atsc3::StreamType::AUDIO) {
         std::vector<uint8_t> wav;
         std::vector<std::vector<uint8_t>> aac;
-        mpeghDecode(decryptedMP4, wav);
-        if (wav.size() == 0) {
-            return;
+
+
+        int32_t stopSample = std::numeric_limits<int32_t>::max();
+        int32_t startSample = 0;
+        int32_t seekFromSample = -1;
+        int32_t seekToSample = -1;
+        int32_t cicpSetup = defaultCicpSetup;
+
+        try {
+            MpeghDecoder processor(std::make_shared<std::vector<uint8_t>>(decryptedMP4), cicpSetup);
+            wav = processor.process(startSample, stopSample, seekFromSample, seekToSample);
+
+        }
+        catch (const std::exception& e) {
+            std::cout << std::endl << "Error: " << e.what() << std::endl << std::endl;
+        }
+        catch (...) {
+            std::cout << std::endl
+                << "Error: An unknown error happened. The program will exit now." << std::endl
+                << std::endl;
         }
 
         uint32_t streamKey = service.idx << 16 | stream.idx;
@@ -376,10 +386,9 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
         for (const auto& item : aac) {
             PESPacket pes;
             std::vector<uint8_t> pesOutput;
-            AVRational r = { 1, static_cast<int>(stream.mp4Config.timescale) };
+            AVRational r = { 1, static_cast<int>(stream.mp4CodecConfig.timescale) };
             AVRational ts = { 1, 90000 };
             uint64_t dts = av_rescale_q(packets[0].dts + j * durationPerFrame, r, ts);
-            uint64_t dtsTimestamp = baseDtsTimestamp + (dts - baseDts) / 90;
             ++j;
 
             pes.setPts(dts);
@@ -409,12 +418,10 @@ void Muxer::onStreamData(const Service& service, const StreamInfo& stream, const
                 ++i;
             }
 
-            outputCallback(tsBuffer.data(), tsBuffer.size(), dtsTimestamp);
+            outputCallback(tsBuffer.data(), tsBuffer.size(), 0);
             tsBuffer.clear();
         }
     }
-    else if (stream.contentType == ContentType::SUBTITLE) {
 
-    }
 
 }

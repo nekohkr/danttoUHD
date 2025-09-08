@@ -10,9 +10,6 @@
     <Filter Include="demux\structs">
       <UniqueIdentifier>{065bb9f0-dc4b-4c41-898c-03962e4620d8}</UniqueIdentifier>
     </Filter>
-    <Filter Include="demux\structs\atsc3">
-      <UniqueIdentifier>{d4fb4e39-0428-4fe5-8e42-664a9cbcf3c9}</UniqueIdentifier>
-    </Filter>
     <Filter Include="mpegh">
       <UniqueIdentifier>{888c4f12-fcbc-4a27-9a18-63be88710b7a}</UniqueIdentifier>
     </Filter>
@@ -22,8 +19,17 @@
     <Filter Include="xml">
       <UniqueIdentifier>{1d8951cc-f02c-48f7-b0c3-bebe3d6ddb08}</UniqueIdentifier>
     </Filter>
-    <Filter Include="demux\tables">
-      <UniqueIdentifier>{ccd0f813-0b77-4b20-88b7-6d671defd7cc}</UniqueIdentifier>
+    <Filter Include="demux\route">
+      <UniqueIdentifier>{3464da1b-484b-4ccc-ad70-e0569de69dff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demux\mmt">
+      <UniqueIdentifier>{7f7b1dc3-06ca-493c-89b3-84a777247174}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demux\atsc3">
+      <UniqueIdentifier>{d4fb4e39-0428-4fe5-8e42-664a9cbcf3c9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="demux\mp4">
+      <UniqueIdentifier>{51100529-6eb6-49db-a573-2c75e729cd28}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -31,9 +37,6 @@
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="demuxer.cpp">
-      <Filter>demux</Filter>
-    </ClCompile>
-    <ClCompile Include="mp4Processor.cpp">
       <Filter>demux</Filter>
     </ClCompile>
     <ClCompile Include="muxer.cpp">
@@ -45,9 +48,6 @@
     <ClCompile Include="pugixml.cpp">
       <Filter>xml</Filter>
     </ClCompile>
-    <ClCompile Include="mpeghDecoder.cpp">
-      <Filter>mpegh</Filter>
-    </ClCompile>
     <ClCompile Include="wav_file2.cpp">
       <Filter>mpegh</Filter>
     </ClCompile>
@@ -56,24 +56,6 @@
     </ClCompile>
     <ClCompile Include="lgContainer.cpp">
       <Filter>demux\structs</Filter>
-    </ClCompile>
-    <ClCompile Include="ipv4.cpp">
-      <Filter>demux\structs</Filter>
-    </ClCompile>
-    <ClCompile Include="udp.cpp">
-      <Filter>demux\structs</Filter>
-    </ClCompile>
-    <ClCompile Include="alp.cpp">
-      <Filter>demux\structs\atsc3</Filter>
-    </ClCompile>
-    <ClCompile Include="lct.cpp">
-      <Filter>demux\structs\atsc3</Filter>
-    </ClCompile>
-    <ClCompile Include="lls.cpp">
-      <Filter>demux\structs\atsc3</Filter>
-    </ClCompile>
-    <ClCompile Include="bbPacket.cpp">
-      <Filter>demux\structs\atsc3</Filter>
     </ClCompile>
     <ClCompile Include="danttoUHD.cpp" />
     <ClCompile Include="service.cpp">
@@ -85,15 +67,6 @@
     <ClCompile Include="serviceManager.cpp">
       <Filter>demux</Filter>
     </ClCompile>
-    <ClCompile Include="sltHandler.cpp">
-      <Filter>demux\tables</Filter>
-    </ClCompile>
-    <ClCompile Include="stsid.cpp">
-      <Filter>demux</Filter>
-    </ClCompile>
-    <ClCompile Include="mpd.cpp">
-      <Filter>demux</Filter>
-    </ClCompile>
     <ClCompile Include="aacEncoder.cpp">
       <Filter>mpegh</Filter>
     </ClCompile>
@@ -101,6 +74,48 @@
       <Filter>mpegh</Filter>
     </ClCompile>
     <ClCompile Include="config.cpp" />
+    <ClCompile Include="mmtDemuxer.cpp">
+      <Filter>demux\mmt</Filter>
+    </ClCompile>
+    <ClCompile Include="mmt.cpp">
+      <Filter>demux\mmt</Filter>
+    </ClCompile>
+    <ClCompile Include="mmtTable.cpp">
+      <Filter>demux\mmt</Filter>
+    </ClCompile>
+    <ClCompile Include="mmtSignalingMessage.cpp">
+      <Filter>demux\mmt</Filter>
+    </ClCompile>
+    <ClCompile Include="udp.cpp">
+      <Filter>demux\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="ipv4.cpp">
+      <Filter>demux\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="atsc3BasebandPacket.cpp">
+      <Filter>demux\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="atsc3Table.cpp">
+      <Filter>demux\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="atsc3.cpp">
+      <Filter>demux\atsc3</Filter>
+    </ClCompile>
+    <ClCompile Include="route.cpp">
+      <Filter>demux\route</Filter>
+    </ClCompile>
+    <ClCompile Include="routeDemuxer.cpp">
+      <Filter>demux\route</Filter>
+    </ClCompile>
+    <ClCompile Include="routeSignaling.cpp">
+      <Filter>demux\route</Filter>
+    </ClCompile>
+    <ClCompile Include="mp4Processor.cpp">
+      <Filter>demux\mp4</Filter>
+    </ClCompile>
+    <ClCompile Include="mmtDescriptor.cpp">
+      <Filter>demux\mmt</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stream.h">
@@ -111,12 +126,6 @@
     </ClInclude>
     <ClInclude Include="swap.h">
       <Filter>common</Filter>
-    </ClInclude>
-    <ClInclude Include="routeObject.h">
-      <Filter>demux</Filter>
-    </ClInclude>
-    <ClInclude Include="mp4Processor.h">
-      <Filter>demux</Filter>
     </ClInclude>
     <ClInclude Include="streamPacket.h">
       <Filter>demux</Filter>
@@ -139,32 +148,11 @@
     <ClInclude Include="wav_file2.h">
       <Filter>mpegh</Filter>
     </ClInclude>
-    <ClInclude Include="atsc3.h">
-      <Filter>demux</Filter>
-    </ClInclude>
     <ClInclude Include="rescale.h">
       <Filter>muxer</Filter>
     </ClInclude>
     <ClInclude Include="lgContainer.h">
       <Filter>demux\structs</Filter>
-    </ClInclude>
-    <ClInclude Include="ipv4.h">
-      <Filter>demux\structs</Filter>
-    </ClInclude>
-    <ClInclude Include="udp.h">
-      <Filter>demux\structs</Filter>
-    </ClInclude>
-    <ClInclude Include="alp.h">
-      <Filter>demux\structs\atsc3</Filter>
-    </ClInclude>
-    <ClInclude Include="lct.h">
-      <Filter>demux\structs\atsc3</Filter>
-    </ClInclude>
-    <ClInclude Include="lls.h">
-      <Filter>demux\structs\atsc3</Filter>
-    </ClInclude>
-    <ClInclude Include="bbPacket.h">
-      <Filter>demux\structs\atsc3</Filter>
     </ClInclude>
     <ClInclude Include="httplib.h" />
     <ClInclude Include="service.h">
@@ -176,18 +164,6 @@
     <ClInclude Include="serviceManager.h">
       <Filter>demux</Filter>
     </ClInclude>
-    <ClInclude Include="sltHandler.h">
-      <Filter>demux\tables</Filter>
-    </ClInclude>
-    <ClInclude Include="mpd.h">
-      <Filter>demux</Filter>
-    </ClInclude>
-    <ClInclude Include="stsid.h">
-      <Filter>demux</Filter>
-    </ClInclude>
-    <ClInclude Include="streamInfo.h">
-      <Filter>demux</Filter>
-    </ClInclude>
     <ClInclude Include="aacEncoder.h">
       <Filter>mpegh</Filter>
     </ClInclude>
@@ -197,6 +173,60 @@
     <ClInclude Include="config.h" />
     <ClInclude Include="ip.h">
       <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="pcapWriter.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="mmtDemuxer.h">
+      <Filter>demux\mmt</Filter>
+    </ClInclude>
+    <ClInclude Include="mmt.h">
+      <Filter>demux\mmt</Filter>
+    </ClInclude>
+    <ClInclude Include="mmtAssembler.h">
+      <Filter>demux\mmt</Filter>
+    </ClInclude>
+    <ClInclude Include="mmtTable.h">
+      <Filter>demux\mmt</Filter>
+    </ClInclude>
+    <ClInclude Include="mmtSignalingMessage.h">
+      <Filter>demux\mmt</Filter>
+    </ClInclude>
+    <ClInclude Include="udp.h">
+      <Filter>demux\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="ipv4.h">
+      <Filter>demux\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="atsc3BasebandPacket.h">
+      <Filter>demux\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="atsc3Table.h">
+      <Filter>demux\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="atsc3.h">
+      <Filter>demux\atsc3</Filter>
+    </ClInclude>
+    <ClInclude Include="route.h">
+      <Filter>demux\route</Filter>
+    </ClInclude>
+    <ClInclude Include="routeDemuxer.h">
+      <Filter>demux\route</Filter>
+    </ClInclude>
+    <ClInclude Include="routeSignaling.h">
+      <Filter>demux\route</Filter>
+    </ClInclude>
+    <ClInclude Include="mediaStream.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="mp4Processor.h">
+      <Filter>demux\mp4</Filter>
+    </ClInclude>
+    <ClInclude Include="mediaTransportDemuxer.h">
+      <Filter>demux</Filter>
+    </ClInclude>
+    <ClInclude Include="mmtDescriptor.h">
+      <Filter>demux\mmt</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
