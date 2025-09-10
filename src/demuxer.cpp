@@ -28,14 +28,14 @@ DemuxStatus Demuxer::demux(const std::vector<uint8_t>& input) {
             uint8_t expectedCC = it->second + 1;
             if (lgContainer.cc != expectedCC) {
                 fprintf(stderr,
-                    "[DROP] plpId=%u, expected_cc=%u, actual_cc=%u\n",
+                    "[DROP] Detected drop packet from LG container (plpId=%u, expected_cc=%u, actual_cc=%u)\n",
                     lgContainer.plpId, expectedCC, lgContainer.cc);
             }
             it->second = lgContainer.cc;
         }
 
         if (lgContainer.errorMode == true && lgContainer.error == true) {
-            fprintf(stderr, "[ERROR] plpId=%u\n", lgContainer.plpId);
+            fprintf(stderr, "[ERROR] Detected error packet from LG container (plpId=%u)\n", lgContainer.plpId);
         }
 
         Common::ReadStream s(lgContainer.payload);

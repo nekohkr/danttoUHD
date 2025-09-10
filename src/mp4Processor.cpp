@@ -418,7 +418,7 @@ bool MP4Processor::ProcessMoof(AP4_ContainerAtom* moof) {
     return true;
 }
 
-static void renameAudioSampleEntry(std::vector<uint8_t>& data) {
+static void renameAudioCodec(std::vector<uint8_t>& data) {
     const std::vector<uint8_t> target = { 'e', 'n', 'c', 'a', 0x00, 0x00, 0x00, 0x00 };
     const std::vector<uint8_t> replacement = { 'm', 'h', 'm', '1', 0x00, 0x00, 0x00, 0x00 };
 
@@ -465,7 +465,7 @@ bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamP
         atom = atom->GetNext();
     }
 
-    renameAudioSampleEntry(decryptedMP4);
+    renameAudioCodec(decryptedMP4);
 
     packets = std::move(this->packets);
     baseDts = this->baseDts;

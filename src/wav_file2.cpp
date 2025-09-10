@@ -320,11 +320,6 @@ int WAV_OutputWrite2(WAV2& wav, void* sampleBuffer, uint32_t numberOfSamples, in
     return 0;
 }
 
-/**
- * WAV_OutputClose
- * \brief Close WAV Output handle
- * \param pWav pointer to WAV handle. *pWav is set to NULL.
- */
 
 void WAV_OutputFlush2(WAV2& wav) {
     uint32_t size = 0;

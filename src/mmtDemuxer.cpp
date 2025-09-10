@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <fstream>
+#include <iostream>
 
 namespace atsc3 {
 
@@ -24,13 +25,11 @@ bool MmtDemuxer::processPacket(Common::ReadStream& stream) {
         if (mapStream.find(mmtp.packetId) == mapStream.end()) {
             return true;
         }
-        mapStream[mmtp.packetId].mpuSequenceNumber = mpu.mpuSequenceNumber;
+
+        mapStream[mmtp.packetId].currentMpuSequenceNumber = mpu.mpuSequenceNumber;
 
         auto processMfu = [&]() -> bool {
             atsc3::MmtMpuDataUnit dataUnit;
-            static int32_t recv = 0;
-            static int32_t dataLength = 0;
-
             if (!dataUnit.unpack(payloadStream, mpu.mpuFragmentType, mpu.timedFlag, mpu.aggregationFlag)) {
                 return false;
             }
@@ -134,13 +133,14 @@ bool MmtDemuxer::processMpu(uint16_t packetId, const MmtMpu& mpu, const std::vec
             Common::ReadStream mfuStream(data);
             
             MmtMMTHSample mmth;
-            if (!mmth.unpack(mfuStream)) {
+            if (!mmth.unpack(mfuStream, true)) {
                 return false;
             }
             
-            std::vector<uint8_t> withoutMMTH(mfuStream.leftBytes());
-            mfuStream.read(withoutMMTH.data(), mfuStream.leftBytes());
-            stream.mfuBuffer.insert(stream.mfuBuffer.end(), withoutMMTH.begin(), withoutMMTH.end());
+            std::vector<uint8_t> payload(mfuStream.leftBytes());
+            mfuStream.read(payload.data(), mfuStream.leftBytes());
+
+            stream.mfuBuffer.insert(stream.mfuBuffer.end(), payload.begin(), payload.end());
             stream.mdatLength += static_cast<uint32_t>(stream.mfuBuffer.size());
         }
     }
@@ -238,7 +238,7 @@ bool MmtDemuxer::processSignalingMessage(uint16_t packetId, const std::vector<ui
 
 std::optional<uint64_t> MmtStream::getTimestamp() {
     auto it = std::find_if(mpuTimestamps.begin(), mpuTimestamps.end(),
-        [this](const auto& entry) { return entry.mpuSequenceNumber == mpuSequenceNumber; });
+        [this](const auto& entry) { return entry.mpuSequenceNumber == currentMpuSequenceNumber; });
 
     if (it == mpuTimestamps.end()) {
         return std::nullopt;

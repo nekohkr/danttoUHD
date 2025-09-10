@@ -229,41 +229,47 @@ bool MmtGeneralLocationInfo::unpack(Common::ReadStream& stream) {
     return true;
 }
 
-bool MmtMMTHSample::unpack(Common::ReadStream& stream) {
+bool MmtMMTHSample::unpack(Common::ReadStream& stream, bool isTimed) {
     sequnceNumber = stream.getBe32U();
-    trackRefIndex = stream.get8U();
-    movieFramgentSequenceNumber = stream.get32U();
-    smapleNumber = stream.get32U();
-    priority = stream.get8U();
-    dependencyCounter = stream.get8U();
-    offset = stream.getBe32U();
-    length = stream.getBe32U();
-    boxSize = stream.getBe32U();
-    boxType = stream.getBe32U();
+    if (isTimed) {
+        trackRefIndex = stream.get8U();
+        movieFramgentSequenceNumber = stream.get32U();
+        smapleNumber = stream.get32U();
+        priority = stream.get8U();
+        dependencyCounter = stream.get8U();
+        offset = stream.getBe32U();
+        length = stream.getBe32U();
+        boxSize = stream.getBe32U();
+        boxType = stream.getBe32U();
 
-    uint8_t uint8 = stream.get8U();
-    multilayerFlag = (uint8 & 0b10000000) >> 7;
+        uint8_t uint8 = stream.get8U();
+        multilayerFlag = (uint8 & 0b10000000) >> 7;
+        reserved1 = uint8 & 0b01111111;
 
-    if (multilayerFlag) {
-        uint8 = stream.get8U();
-        dependencyId = (uint8 & 0b11100000) >> 5;
-        depthFlag = (uint8 & 0b00010000) >> 4;
-        reserved1 = uint8 & 0b00001111;
+        if (multilayerFlag) {
+            uint8 = stream.get8U();
+            dependencyId = (uint8 & 0b11100000) >> 5;
+            depthFlag = (uint8 & 0b00010000) >> 4;
+            reserved1 = uint8 & 0b00001111;
 
-        uint8 = stream.get8U();
-        temporalId = (uint8 & 0b11100000) >> 5;
-        reserved2 = (uint8 & 0b00010000) >> 4;
-        qualityId = uint8 & 0b00001111;
+            uint8 = stream.get8U();
+            temporalId = (uint8 & 0b11100000) >> 5;
+            reserved2 = (uint8 & 0b00010000) >> 4;
+            qualityId = uint8 & 0b00001111;
 
-        uint16_t uint16 = stream.getBe16U();
-        priorityId = (uint16 & 0b1111110000000000) >> 10;
-        viewId = uint16 & 0b0000001111111111;
+            uint16_t uint16 = stream.getBe16U();
+            priorityId = (uint16 & 0b1111110000000000) >> 10;
+            viewId = uint16 & 0b0000001111111111;
+        }
+        else {
+            uint16_t uint16 = stream.getBe16U();
+            layerId = (uint8 & 0b1111110000000000) >> 10;
+            temporalId = (uint8 & 0b0000001110000000) >> 7;
+            reserved3 = uint8 & 0b0000000001111111;
+        }
     }
     else {
-        uint16_t uint16 = stream.getBe16U();
-        layerId = (uint8 & 0b1111110000000000) >> 10;
-        temporalId = (uint8 & 0b0000001110000000) >> 7;
-        reserved3 = uint8 & 0b0000000001111111;
+        itemId = stream.getBe32U();
     }
 
     return true;

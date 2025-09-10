@@ -10,7 +10,7 @@
 #include "aacEncoder.h"
 
 struct AVCodecContext;
-
+class MpeghDecoder;
 class Muxer : public atsc3::DemuxerHandler {
 public:
     using OutputCallback = std::function<void(const uint8_t*, size_t, uint64_t)>;
@@ -27,6 +27,8 @@ private:
     ts::DuckContext duck;
 
     std::map<uint32_t, AacEncoder> mapAACEncoder;
+    std::map<uint32_t, MpeghDecoder*> mapMpeghDecoder;
+    
     bool ready{ false };
 
 };

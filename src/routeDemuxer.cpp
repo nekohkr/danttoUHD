@@ -173,6 +173,7 @@ void RouteDemuxer::updateStreamMap() {
                     continue;
                 }
                 stream.idx = i;
+                stream.packetId = ls.transportSessionId;
                 mapStream[ls.transportSessionId] = stream;
             }
 

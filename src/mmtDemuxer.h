@@ -38,7 +38,7 @@ namespace atsc3 {
      std::vector<MmtMpuTimestampDescriptor::Entry> mpuTimestamps;
      uint32_t assetType{0};
      uint32_t mdatLength{0};
-     uint32_t mpuSequenceNumber{0};
+     uint32_t currentMpuSequenceNumber{0};
 
 };
 

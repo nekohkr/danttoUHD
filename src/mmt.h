@@ -57,7 +57,7 @@ namespace MmtMessageId {
 
 class MmtMMTHSample {
 public:
-    bool unpack(Common::ReadStream& stream);
+    bool unpack(Common::ReadStream& stream, bool isTimed);
 
 public:
     uint32_t sequnceNumber;
@@ -70,7 +70,7 @@ public:
     uint32_t length;
     uint32_t boxSize;
     uint32_t boxType;
-    uint32_t multilayerFlag;
+    bool multilayerFlag;
     uint8_t dependencyId;
     bool depthFlag;
     uint8_t reserved1;
@@ -81,6 +81,8 @@ public:
     uint16_t viewId;
     uint8_t layerId;
     uint8_t reserved3;
+    uint32_t itemId;
+
 };
 
 class MmtGeneralLocationInfo {

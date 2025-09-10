@@ -102,10 +102,6 @@ void hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8
     }
 }
 
-uint64_t convertDTS(uint64_t dts_mp4, uint32_t timescale_mp4, uint32_t timescale_ts = 90000) {
-    return static_cast<uint64_t>(static_cast<double>(dts_mp4) / timescale_mp4 * timescale_ts);
-}
-
 uint16_t calcPesPid(const atsc3::Service& service, uint32_t streamIdx) {
     return service.getPmtPid() + 1 + streamIdx;
 }
@@ -331,7 +327,7 @@ void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream
                 ++mapCC[pid];
                 if (i == 0) {
                     packet.setPUSI();
-                    packet.setPCR(dts * 300, true);
+                    packet.setPCR((dts-90000*2) * 300, true);
                 }
 
                 const size_t chunkSize = std::min(payloadLength, static_cast<size_t>(188 - packet.getHeaderSize()));
@@ -349,47 +345,31 @@ void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream
         }
     }
     else if (stream.getStreamType() == atsc3::StreamType::AUDIO) {
-        std::vector<uint8_t> wav;
+        MpeghDecoderResult decodeResult;
         std::vector<std::vector<uint8_t>> aac;
 
-
-        int32_t stopSample = std::numeric_limits<int32_t>::max();
-        int32_t startSample = 0;
-        int32_t seekFromSample = -1;
-        int32_t seekToSample = -1;
-        int32_t cicpSetup = defaultCicpSetup;
-
-        try {
-            MpeghDecoder processor(std::make_shared<std::vector<uint8_t>>(decryptedMP4), cicpSetup);
-            wav = processor.process(startSample, stopSample, seekFromSample, seekToSample);
-
-        }
-        catch (const std::exception& e) {
-            std::cout << std::endl << "Error: " << e.what() << std::endl << std::endl;
-        }
-        catch (...) {
-            std::cout << std::endl
-                << "Error: An unknown error happened. The program will exit now." << std::endl
-                << std::endl;
-        }
-
         uint32_t streamKey = service.idx << 16 | stream.idx;
-        mapAACEncoder[streamKey].encode(wav, aac);
+        if (mapMpeghDecoder.find(streamKey) == mapMpeghDecoder.end()) {
+            mapMpeghDecoder[streamKey] = new MpeghDecoder();
+        }
+
+        decodeResult = mapMpeghDecoder[streamKey]->feed(std::make_shared<std::vector<uint8_t>>(decryptedMP4));
+
+        mapAACEncoder[streamKey].encode(decodeResult.wav, aac);
         if (aac.size() == 0) {
             return;
         }
-
+        
         uint64_t duration = (packets[1].dts - packets[0].dts) * packets.size();
         uint64_t durationPerFrame = duration / aac.size();
-
-        int j = 0;
+        int frameCounter = 0;
         for (const auto& item : aac) {
             PESPacket pes;
             std::vector<uint8_t> pesOutput;
             AVRational r = { 1, static_cast<int>(stream.mp4CodecConfig.timescale) };
             AVRational ts = { 1, 90000 };
-            uint64_t dts = av_rescale_q(packets[0].dts + j * durationPerFrame, r, ts);
-            ++j;
+            uint64_t dts = av_rescale_q(packets[0].dts + frameCounter * durationPerFrame, r, ts);
+            ++frameCounter;
 
             pes.setPts(dts);
             pes.setDts(dts);

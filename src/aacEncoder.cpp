@@ -136,8 +136,7 @@ int AacEncoder::encode(const std::vector<uint8_t>& input, std::vector<std::vecto
 	return 0;
 }
 
-void AacEncoder::close()
-{
+void AacEncoder::close() {
 	wav_read_close(wav);
 	aacEncClose(&handle);
 }
