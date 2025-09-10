@@ -14,14 +14,15 @@
 
 namespace {
 
-void hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
+std::pair<bool, bool> hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8_t>& input, std::vector<uint8_t>& output) {
     bool have_access_unit_delimiter = false;
     bool have_param_sets = false;
+    bool hasRandomAccessIndicator = false;
 
     Common::ReadStream s(input);
     while (s.leftBytes()) {
         if (s.leftBytes() < mp4Config.nalUnitLengthSize) {
-            return;
+            return { false, false };
         }
         uint32_t nalUnitSize = 0;
         if (mp4Config.nalUnitLengthSize == 1) {
@@ -38,11 +39,11 @@ void hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8
             nalUnitSize = s.getBe32U();
         }
         else {
-            return;
+            return { false, false };
         }
 
         if (s.leftBytes() < nalUnitSize) {
-            return;
+            return { false, false };
         }
 
         unsigned int nal_unit_type = (s.peek8U() >> 1) & 0x3F;
@@ -81,11 +82,11 @@ void hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8
             nalUnitSize = s.getBe32U();
         }
         else {
-            return;
+            return { false, false };
         }
 
         if (s.leftBytes() < nalUnitSize) {
-            return;
+            return { false, false };
         }
 
         if (!prefix_added) {
@@ -97,9 +98,23 @@ void hevcProcess(const atsc3::MP4CodecConfig& mp4Config, const std::vector<uint8
         buffer.resize(nalUnitSize);
         s.read(buffer.data(), nalUnitSize);
 
+
+        unsigned int nal_unit_type = (buffer[0] >> 1) & 0x3F;
+        if (nal_unit_type == AP4_HEVC_NALU_TYPE_IDR_W_RADL ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_IDR_N_LP ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_CRA_NUT ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_BLA_W_LP ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_BLA_W_RADL ||
+            nal_unit_type == AP4_HEVC_NALU_TYPE_BLA_N_LP
+            ) {
+            hasRandomAccessIndicator = true;
+        }
+
         output.insert(output.end(), { 0, 0, 1 });
         output.insert(output.end(), buffer.begin(), buffer.end());
     }
+
+    return { have_access_unit_delimiter, hasRandomAccessIndicator };
 }
 
 uint16_t calcPesPid(const atsc3::Service& service, uint32_t streamIdx) {
@@ -310,12 +325,15 @@ void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream
             std::vector<uint8_t> pesOutput;
             std::vector<uint8_t> processed;
 
-            hevcProcess(stream.mp4CodecConfig, packet.data, processed);
+            auto hevcResult = hevcProcess(stream.mp4CodecConfig, packet.data, processed);
 
             PESPacket pes;
             pes.setPts(pts);
             pes.setDts(dts);
             pes.setStreamId(STREAM_ID_VIDEO_STREAM_0);
+            if (hevcResult.first) {
+                pes.setDataAlignmentIndicator(true);
+            }
             pes.setPayload(&processed);
             pes.pack(pesOutput);
 
@@ -327,7 +345,10 @@ void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream
                 ++mapCC[pid];
                 if (i == 0) {
                     packet.setPUSI();
-                    packet.setPCR((dts-90000*2) * 300, true);
+                    packet.setPCR((dts-9000*3) * 300, true);
+                    if (hevcResult.second) {
+                        packet.setRandomAccessIndicator(true);
+                    }
                 }
 
                 const size_t chunkSize = std::min(payloadLength, static_cast<size_t>(188 - packet.getHeaderSize()));
