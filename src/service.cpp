@@ -59,7 +59,6 @@ bool Service::onStreamTable(const std::vector<std::reference_wrapper<MediaStream
 
 bool Service::onMediaData(atsc3::MediaStream& stream, const std::vector<uint8_t>& mfu, const std::vector<uint8_t>& metadata, uint64_t basePts) {
     std::vector<StreamPacket> packets;
-    std::vector<uint8_t> decryptedMP4;
 
     MP4ConfigParser::parse(metadata, stream.mp4CodecConfig);
 
@@ -67,7 +66,7 @@ bool Service::onMediaData(atsc3::MediaStream& stream, const std::vector<uint8_t>
     input.insert(input.end(), metadata.begin(), metadata.end());
     input.insert(input.end(), mfu.begin(), mfu.end());
 
-    mp4Processor.process(input, packets, decryptedMP4);
+    mp4Processor.process(input, packets);
 
     if (packets.size() == 0) {
         return false;
@@ -83,7 +82,7 @@ bool Service::onMediaData(atsc3::MediaStream& stream, const std::vector<uint8_t>
     }
 
     if (handler != nullptr) {
-        handler->onStreamData(*this, stream, packets, decryptedMP4);
+        handler->onStreamData(*this, stream, packets);
     }
 
     return true;

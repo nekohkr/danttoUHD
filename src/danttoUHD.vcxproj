@@ -146,7 +146,6 @@
     <ClCompile Include="atsc3Table.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="decompress.cpp" />
-    <ClCompile Include="atsc3BasebandPacket.cpp" />
     <ClCompile Include="danttoUHD.cpp" />
     <ClCompile Include="lgContainer.cpp" />
     <ClCompile Include="mmt.cpp" />
@@ -189,7 +188,6 @@
     <ClInclude Include="route.h" />
     <ClInclude Include="routeDemuxer.h" />
     <ClInclude Include="atsc3.h" />
-    <ClInclude Include="atsc3BasebandPacket.h" />
     <ClInclude Include="demuxerHandler.h" />
     <ClInclude Include="httplib.h" />
     <ClInclude Include="lgContainer.h" />

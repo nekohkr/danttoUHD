@@ -28,10 +28,10 @@ public:
 
 class MP4Processor {
 public:
-    bool process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& outputMp4);
+    bool process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets);
 
 private:
-    bool ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4);
+    bool ProcessMdat(AP4_Atom* trun);
     bool ProcessMoof(AP4_ContainerAtom* trun);
     bool ProcessPssh(AP4_Atom* trun);
     void ProcessSenc(AP4_Atom* trun);
@@ -49,7 +49,7 @@ private:
     AP4_TrunAtom* g_trun;
     uint64_t baseDts{ 0 };
     uint32_t baseSampleDuration{ 0 };
-    std::vector<StreamPacket> packets;
+    std::vector<struct StreamPacket> packets;
 
 };
 

@@ -309,8 +309,7 @@ void Muxer::onPmt(const atsc3::Service& service, std::vector<std::reference_wrap
     outputCallback(tsBuffer.data(), tsBuffer.size(), 0);
 }
 
-void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream& stream, const std::vector<StreamPacket>& packets,
-    const std::vector<uint8_t>& decryptedMP4) {
+void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream& stream, const std::vector<StreamPacket>& packets) {
     std::vector<uint8_t> tsBuffer;
     uint16_t pid = calcPesPid(service, stream.idx);
     AVRational r = { 1, static_cast<int>(stream.mp4CodecConfig.timescale) };
@@ -366,22 +365,22 @@ void Muxer::onStreamData(const atsc3::Service& service, const atsc3::MediaStream
         }
     }
     else if (stream.getStreamType() == atsc3::StreamType::AUDIO) {
-        MpeghDecoderResult decodeResult;
-        std::vector<std::vector<uint8_t>> aac;
+        uint64_t sampleDuration = packets[1].dts - packets[0].dts;
+        uint64_t duration = sampleDuration * packets.size();
 
         uint32_t streamKey = service.idx << 16 | stream.idx;
         if (mapMpeghDecoder.find(streamKey) == mapMpeghDecoder.end()) {
             mapMpeghDecoder[streamKey] = new MpeghDecoder();
         }
 
-        decodeResult = mapMpeghDecoder[streamKey]->feed(std::make_shared<std::vector<uint8_t>>(decryptedMP4));
+        MpeghDecoderResult decodeResult = mapMpeghDecoder[streamKey]->feed(packets, sampleDuration, stream.mp4CodecConfig.timescale);
 
+        std::vector<std::vector<uint8_t>> aac;
         mapAACEncoder[streamKey].encode(decodeResult.wav, aac);
         if (aac.size() == 0) {
             return;
         }
-        
-        uint64_t duration = (packets[1].dts - packets[0].dts) * packets.size();
+
         uint64_t durationPerFrame = duration / aac.size();
         int frameCounter = 0;
         for (const auto& item : aac) {

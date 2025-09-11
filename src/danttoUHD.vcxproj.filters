@@ -92,9 +92,6 @@
     <ClCompile Include="ipv4.cpp">
       <Filter>demux\atsc3</Filter>
     </ClCompile>
-    <ClCompile Include="atsc3BasebandPacket.cpp">
-      <Filter>demux\atsc3</Filter>
-    </ClCompile>
     <ClCompile Include="atsc3Table.cpp">
       <Filter>demux\atsc3</Filter>
     </ClCompile>
@@ -196,9 +193,6 @@
       <Filter>demux\atsc3</Filter>
     </ClInclude>
     <ClInclude Include="ipv4.h">
-      <Filter>demux\atsc3</Filter>
-    </ClInclude>
-    <ClInclude Include="atsc3BasebandPacket.h">
       <Filter>demux\atsc3</Filter>
     </ClInclude>
     <ClInclude Include="atsc3Table.h">

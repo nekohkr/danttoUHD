@@ -19,8 +19,7 @@ public:
 private:
     virtual void onSlt(const atsc3::ServiceManager& sm) override;
     virtual void onPmt(const atsc3::Service& service, std::vector<std::reference_wrapper<atsc3::MediaStream>> streams) override;
-    virtual void onStreamData(const atsc3::Service& service, const atsc3::MediaStream& stream, const std::vector<StreamPacket>& chunks,
-        const std::vector<uint8_t>& decryptedMP4) override;
+    virtual void onStreamData(const atsc3::Service& service, const atsc3::MediaStream& stream, const std::vector<StreamPacket>& chunks) override;
 
     std::unordered_map<uint16_t, uint8_t> mapCC;
     OutputCallback outputCallback;

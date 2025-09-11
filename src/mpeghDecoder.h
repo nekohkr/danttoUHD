@@ -60,42 +60,23 @@ public:
         }
     }
 
-    struct MpeghDecoderResult feed(const std::shared_ptr<const ilo::ByteBuffer> input) {
-        CIsobmffReader m_reader(ilo::make_unique<CIsobmffMemoryInput>(input));
-        bool mhmTrackAlreadyProcessed = false;
-        const auto& movieInfo = m_reader.movieInfo();
+    struct MpeghDecoderResult feed(const std::vector<struct StreamPacket>& packets, uint64_t sampleDuration, uint32_t timescale) {
         struct MpeghDecoderResult result;
-        for (const auto& trackInfo : m_reader.trackInfos()) {
-            if (mhmTrackAlreadyProcessed) {
-                continue;
-            }
+        uint32_t sampleCounter = 0;
 
-            std::unique_ptr<CMpeghTrackReader> mpeghTrackReader =
-                m_reader.trackByIndex<CMpeghTrackReader>(trackInfo.trackIndex);
-
-            if (mpeghTrackReader == nullptr) {
-                continue;
-            }
-
-            SMpeghMhm1TrackConfig mpeghConfig;
-            mpeghConfig.mediaTimescale = trackInfo.timescale;
-            mpeghConfig.sampleRate = mpeghTrackReader->sampleRate();
+        for (const auto& packet : packets) {
 
             CSample sample = CSample{ MAX_MPEGH_FRAME_SIZE };
+            sample.duration = sampleDuration;
+            sample.rawData = packet.data;
 
-            SSampleExtraInfo sampleInfo = mpeghTrackReader->nextSample(sample);
-            int sampleCounter = 0;
-            while (!sample.empty()) {
-                sample.fragmentNumber = 0;
-                processSingleSample(sample);
-                decodeSingleSample(sampleInfo, sample);
+            sample.fragmentNumber = 0;
+            processSingleSample(sample);
+            decodeSingleSample(timescale, sample);
 
-                sampleInfo = mpeghTrackReader->nextSample(sample);
-                sampleCounter++;
-            }
+            sampleCounter++;
 
             result.sampleCount = sampleCounter;
-            mhmTrackAlreadyProcessed = true;
         }
 
         WAV_OutputFlush2(m_wavFile);
@@ -104,7 +85,7 @@ public:
     }
 
     void processSingleSample(mmt::isobmff::CSample& sample) {
-        uint32_t mhasLength = sample.rawData.size();
+        uint32_t mhasLength = static_cast<uint32_t>(sample.rawData.size());
         MPEGH_UI_ERROR feedErr = mpegh_UI_FeedMHAS(m_uiManager, sample.rawData.data(), mhasLength);
 
         if (feedErr == MPEGH_UI_OK) {
@@ -125,7 +106,7 @@ public:
         }
     }
 
-    std::vector<uint8_t> decodeSingleSample(SSampleExtraInfo sampleInfo, CSample sample) {
+    std::vector<uint8_t> decodeSingleSample(uint32_t timescale, CSample sample) {
         uint32_t frameSize = 0;
         uint32_t sampleRate = 0;
         int32_t numChannels = -1;
@@ -135,8 +116,8 @@ public:
         int32_t outData[MAX_RENDERED_CHANNELS * MAX_RENDERED_FRAME_SIZE] = { 0 };
         MPEGH_DECODER_ERROR err = MPEGH_DEC_OK;
 
-        err = mpeghdecoder_processTimescale(m_decoder, sample.rawData.data(), sample.rawData.size(),
-            pts, sampleInfo.timestamp.timescale());
+        err = mpeghdecoder_processTimescale(m_decoder, sample.rawData.data(), static_cast<uint32_t>(sample.rawData.size()),
+            pts, timescale);
         pts += sample.duration;
 
         MPEGH_DECODER_ERROR status = MPEGH_DEC_OK;

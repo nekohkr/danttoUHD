@@ -4,11 +4,9 @@ int AacEncoder::encode(const std::vector<uint8_t>& input, std::vector<std::vecto
 	wav = wav_read_open(input);
 	if (!inited) {
 		if (!wav) {
-			fprintf(stderr, "Unable to open wav file %s\n", infile);
 			return 1;
 		}
 		if (!wav_get_header(wav, &format, &channels, &sample_rate, &bits_per_sample, NULL)) {
-			fprintf(stderr, "Bad wav file %s\n", infile);
 			return 1;
 		}
 		if (format != 1) {

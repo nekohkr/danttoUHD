@@ -118,14 +118,6 @@ bool MP4ConfigParser::parse(const std::vector<uint8_t>& input, struct MP4CodecCo
 
                 for (unsigned int i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
                     const AP4_HvccAtom::Sequence& seq = hvcc->GetSequences()[i];
-                    if (seq.m_NaluType != AP4_HEVC_NALU_TYPE_VPS_NUT &&
-                        seq.m_NaluType != AP4_HEVC_NALU_TYPE_SPS_NUT &&
-                        seq.m_NaluType != AP4_HEVC_NALU_TYPE_PPS_NUT) {
-                        int a = 1;
-                    }
-                }
-                for (unsigned int i = 0; i < hvcc->GetSequences().ItemCount(); i++) {
-                    const AP4_HvccAtom::Sequence& seq = hvcc->GetSequences()[i];
                     if (seq.m_NaluType == AP4_HEVC_NALU_TYPE_VPS_NUT) {
                         for (unsigned int j = 0; j < seq.m_Nalus.ItemCount(); j++) {
                             const AP4_DataBuffer& buffer = seq.m_Nalus[j];
@@ -285,34 +277,25 @@ bool MP4Processor::ProcessPssh(AP4_Atom* trun) {
     return true;
 }
 
-bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) {
+bool MP4Processor::ProcessMdat(AP4_Atom* trun) {
     AP4_DataBuffer buffer;
     AP4_MemoryByteStream* stream = new AP4_MemoryByteStream(buffer);
 
     trun->Write(*stream);
 
-    std::vector<uint8_t> decryptedMdat;
-
     bool hasPrefix = false;
     stream->Seek(0x8);
 
     int size = 0;
-    uint64_t dts = baseDts;
     for (int i = 0; i < vecSampleSize.size(); i++) {
         std::vector<uint8_t> segment(vecSampleSize[i]);
         stream->Read(segment.data(), vecSampleSize[i]);
 
+        struct StreamPacket packet;
         if (config.casServerUrl != "") {
             std::vector<uint8_t> decrypted(vecSampleSize[i]);
             if (vecIv.size() < i + 1) {
-                decryptedMdat.insert(decryptedMdat.end(), segment.begin(), segment.end());
-
-                StreamPacket packet;
                 packet.data = segment;
-                packet.dts = dts;
-                packet.pts = dts + vecSampleCompositionTimeOffset[i];
-                dts += baseSampleDuration;
-                packets.push_back(packet);
             }
             else {
                 auto it = std::find_if(keyCache.begin(), keyCache.end(),
@@ -331,35 +314,16 @@ bool MP4Processor::ProcessMdat(AP4_Atom* trun, std::vector<uint8_t>& outputMp4) 
                     return false;
                 }
 
-                decryptedMdat.insert(decryptedMdat.end(), decrypted.begin(), decrypted.end());
-
-                StreamPacket packet;
                 packet.data = std::move(decrypted);
-                packet.dts = dts;
-                packet.pts = dts + vecSampleCompositionTimeOffset[i];
-                dts += baseSampleDuration;
-                packets.push_back(packet);
             }
         }
         else {
-            decryptedMdat.insert(decryptedMdat.end(), segment.begin(), segment.end());
-
-            StreamPacket packet;
             packet.data = segment;
-            packet.dts = dts;
-            packet.pts = dts + vecSampleCompositionTimeOffset[i];
-            dts += baseSampleDuration;
-            packets.push_back(packet);
         }
-    }
 
-    {
-        AP4_UnknownAtom newMdat(AP4_ATOM_TYPE_MDAT, decryptedMdat.data(), static_cast<AP4_Size>(decryptedMdat.size()));
-        AP4_MemoryByteStream* stream2 = new AP4_MemoryByteStream(buffer);
-        newMdat.Write(*stream2);
-        outputMp4.insert(outputMp4.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
-
-        stream2->Release();
+        packet.dts = baseDts + i * baseSampleDuration;
+        packet.pts = packet.dts + vecSampleCompositionTimeOffset[i];
+        packets.push_back(packet);
     }
 
     stream->Release();
@@ -390,7 +354,6 @@ bool MP4Processor::ProcessMoof(AP4_ContainerAtom* moof) {
                     ProcessTfhd(tfhd);
                 }
 
-
                 if (traf_atom->GetType() == AP4_ATOM_TYPE_TRUN) {
                     AP4_TrunAtom* trun = AP4_DYNAMIC_CAST(AP4_TrunAtom, traf_atom);
                     ProcessTrun(trun);
@@ -402,7 +365,6 @@ bool MP4Processor::ProcessMoof(AP4_ContainerAtom* moof) {
                     AP4_TfdtAtom* tfdt = AP4_DYNAMIC_CAST(AP4_TfdtAtom, traf_atom);
                     ProcessTfdt(tfdt);
                 }
-
 
                 traf_item = traf_item->GetNext();
             }
@@ -418,18 +380,7 @@ bool MP4Processor::ProcessMoof(AP4_ContainerAtom* moof) {
     return true;
 }
 
-static void renameAudioCodec(std::vector<uint8_t>& data) {
-    const std::vector<uint8_t> target = { 'e', 'n', 'c', 'a', 0x00, 0x00, 0x00, 0x00 };
-    const std::vector<uint8_t> replacement = { 'm', 'h', 'm', '1', 0x00, 0x00, 0x00, 0x00 };
-
-    auto it = std::search(data.begin(), data.end(), target.begin(), target.end());
-    while (it != data.end()) {
-        std::copy(replacement.begin(), replacement.end(), it);
-        it = std::search(it + replacement.size(), data.end(), target.begin(), target.end());
-    }
-}
-
-bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets, std::vector<uint8_t>& decryptedMP4) {
+bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamPacket>& packets) {
     clear();
 
     AP4_DataBuffer buffer;
@@ -450,22 +401,14 @@ bool MP4Processor::process(const std::vector<uint8_t>& data, std::vector<StreamP
             }
         }
         else if (atom->GetData()->GetType() == AP4_ATOM_TYPE_MDAT) {
-            ProcessMdat(atom->GetData(), decryptedMP4);
+            ProcessMdat(atom->GetData());
 
             atom = atom->GetNext();
             continue;
         }
 
-        AP4_DataBuffer buffer;
-        AP4_MemoryByteStream* stream = new AP4_MemoryByteStream(buffer);
-        atom->GetData()->Write(*stream);
-        decryptedMP4.insert(decryptedMP4.end(), buffer.GetData(), buffer.GetData() + buffer.GetDataSize());
-        stream->Release();
-
         atom = atom->GetNext();
     }
-
-    renameAudioCodec(decryptedMP4);
 
     packets = std::move(this->packets);
     baseDts = this->baseDts;
